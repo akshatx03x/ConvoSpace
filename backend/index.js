@@ -5,6 +5,13 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoute.js';
 
+import {Server} from 'socket.io';
+const io = new Server(5000);
+
+io.on("connection", (socket) => {
+    console.log(`User connected: ${socket.id}`);    
+}) 
+
 const app = express();
 dotenv.config();
 app.use(express.json());

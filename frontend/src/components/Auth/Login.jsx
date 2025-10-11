@@ -1,86 +1,120 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from 'axios';
+import { FaGoogle, FaApple, FaFacebookF } from "react-icons/fa"; // You might need to install 'react-icons'
+import axios from "axios";
 
 function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
+
     try {
-      const response = await axios.post('http://localhost:5000/login', formData, {
-        withCredentials: true
-      });
+      const response = await axios.post(
+        "http://localhost:5000/login",
+        formData
+      );
+
       alert(response.data.message);
-      navigate('/dashboard');
+      localStorage.setItem("token", response.data.token);
+      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-2xl shadow-md w-80">
-        <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">
-          Login
-        </h2>
+    <div className="min-h-screen flex items-center justify-center bg-[#F3E5D8] p-4 sm:p-8">
+      
+      <div className="flex w-full max-w-6xl h-[600px] bg-white rounded-3xl shadow-2xl overflow-hidden">
+        
+        <div className="w-full lg:w-1/2 p-12 flex flex-col justify-center">
+          
+          <h1 className="text-4xl font-semibold mb-2 text-gray-800">
+            Hello Again!
+          </h1>
+          <p className="text-gray-500 mb-8">
+            Let's get started with your 30 days trial
+          </p>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-            />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
+            <div>
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            <button
+              type="submit"
+              className="w-full py-3 mt-8 text-white bg-[#A06C78] rounded-lg font-medium hover:bg-[#8B5C67] transition disabled:opacity-50 shadow-md"
+              disabled={loading}
+            >
+              {loading ? "Signing In..." : "Sign In"}
+            </button>
+          </form>
+          <div className="flex items-center my-6">
+            <hr className="flex-grow border-gray-200" />
+            <span className="px-3 text-gray-400 text-sm">Or continue with</span>
+            <hr className="flex-grow border-gray-200" />
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              placeholder="Enter your password"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required
-            />
+          <div className="flex justify-center space-x-6">
+            <button className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+              <FaGoogle className="w-5 h-5 text-gray-600" />
+            </button>
+            <button className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+              <FaApple className="w-5 h-5 text-gray-600" />
+            </button>
+            <button className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+              <FaFacebookF className="w-5 h-5 text-gray-600" />
+            </button>
           </div>
-
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-
-          <button
-            type="submit"
-            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
-            disabled={loading}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-
-        <p className="text-sm text-center text-gray-600 mt-4">
-          Don’t have an account?{" "}
-          <Link to='/register' className="text-blue-500 hover:underline">
-            Register
-          </Link>
-        </p>
+        </div>
+        <div className="hidden lg:block lg:w-1/2 p-10 relative rounded-r-3xl" 
+             style={{ 
+               backgroundImage: 'linear-gradient(to top, #7A789A, #E8A878, #F4D3C5)',
+               backgroundSize: 'cover',
+               backgroundPosition: 'center',
+             }}
+        >
+          <div className="absolute bottom-10 left-10 text-white">
+             <h2 className="text-3xl font-light">Finally, Get your Advantage.</h2>
+          </div>
+        </div>
       </div>
     </div>
   );
