@@ -1,9 +1,17 @@
-# TODO: Connect Frontend to Backend
+# TODO: Fix Email Issue After Joining Room
 
-## Steps to Complete
-- [x] Install axios in frontend for API requests
-- [x] Update backend/controllers/authController.js to set JWT cookie on register (call generateToken after user creation)
-- [x] Update frontend/src/components/Auth/Register.jsx: Add form fields (name, username, email, password), handleSubmit with POST to http://localhost:5000/register, success redirect to /login, error handling
-- [x] Update frontend/src/components/Auth/Login.jsx: Fix handleSubmit with POST to http://localhost:5000/login, success redirect to /dashboard, error handling, remove unused loginpage export
-- [x] Update frontend/src/App.jsx: Add routes for /admin and /employee using AdminDashboard and EmployeeDashboard components, add basic redirect logic after auth
-- [ ] Test: Start backend (cd backend && npm start), start frontend (cd frontend && npm run dev), test register/login forms, verify API calls and redirects
+## Steps to Complete:
+
+1. **Update frontend/src/context/SocketProvider.jsx**: Include the JWT token from localStorage in the socket authentication to send it with the connection.
+
+2. **Update backend/index.js - Socket Authentication**: On socket connection, verify the JWT token, retrieve the user from the database, and attach the user object (including email) to the socket for authenticated access.
+
+3. **Update backend/index.js - Room Join Handler**: Modify the 'room:join' event handler to use the authenticated user's email from the socket.user instead of the email from the event data. Emit the response with the correct email.
+
+4. **Test the Changes**: 
+   - Start the backend server.
+   - Login with a user in the frontend.
+   - Join a room and verify the console log shows the correct email.
+   - Ensure no spoofing is possible.
+
+Progress: Step 1 completed - Updated SocketProvider to include JWT token in auth.

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaGoogle, FaApple, FaFacebookF } from "react-icons/fa"; // You might need to install 'react-icons'
+import { FaGoogle, FaApple, FaFacebookF } from "react-icons/fa"; 
 import axios from "axios";
 
 function Login() {
@@ -24,11 +24,13 @@ function Login() {
     try {
       const response = await axios.post(
         "http://localhost:5000/login",
-        formData
+        formData,
+        { withCredentials: true }
       );
 
       alert(response.data.message);
       localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
