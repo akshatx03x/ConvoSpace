@@ -78,6 +78,7 @@ io.on("connection", async (socket) => {
         const email = socket.user.email;
         socket.join(room);
         socket.to(room).emit("room:joined", `User with ID: ${socket.id} joined the room`);
+        io.to(socket.id).emit("room:joined", { email, room });
         emailtoSocketIdMap.set(email, socket.id);
         socketIdToEmailMap.set(socket.id, email);
         io.to(socket.id).emit("room:join", { email, room });
