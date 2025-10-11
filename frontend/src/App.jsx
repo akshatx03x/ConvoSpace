@@ -1,13 +1,17 @@
 import React from 'react'
 import Login from './components/Auth/Login'
-import { Button } from './components/ui/button'
+import Register from './components/Auth/Register'
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
 
 const App = () => {
   return (
-    <>
-    <Login />
-    <Button>hI </Button>
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path='/login' element={<Login />} />
+        <Route path='/register' element={<Register />} />
+        <Route path='/' element={<Navigate to='/login' replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

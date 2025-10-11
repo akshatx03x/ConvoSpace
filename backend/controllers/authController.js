@@ -50,8 +50,18 @@ export const register = async (req, res) => {
             password: hashedPassword,
         });
 
+        // Generate JWT token and set as cookie
+        let token;
+        try {
+            token = generateToken(newUser._id, res);
+        } catch (err) {
+            console.error("Token generation error:", err);
+            return res.status(500).json({ message: "Token generation failed" });
+        }
+
         res.status(201).json({
             message: "User registered successfully",
+            token,
             user: {
                 id: newUser._id,
                 name: newUser.name,
