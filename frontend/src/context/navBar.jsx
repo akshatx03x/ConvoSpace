@@ -12,7 +12,7 @@ const NavBar = () => {
 
         <ul className='flex items-center space-x-12 font-medium'>
           <li className='relative group'>
-            <Link to='/' className='text-gray-700 hover:text-[#A06C78] transition-all duration-300 cursor-pointer p-1'>
+            <Link to='/dashboard' className='text-gray-700 hover:text-[#A06C78] transition-all duration-300 cursor-pointer p-1'>
               Home
               <span className='absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-[#A06C78] group-hover:w-full transition-all duration-300'></span>
             </Link>
