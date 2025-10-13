@@ -8,7 +8,6 @@ const Dashboard = () => {
     <div>
         <NavBar/>
         <VideoCalling/>
-        <Footer/>
         <div className="p-10"></div>
     </div>
   )
