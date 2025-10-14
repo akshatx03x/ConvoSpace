@@ -96,4 +96,8 @@ io.on("connection", async (socket) => {
         io.to(to).emit('peer:nego:needed', { from: socket.id, offer });
     }           
     );
+    socket.on('peer:nego:done', ({ to, answer }) => {
+        io.to(to).emit('peer:nego:final', { from: socket.id, answer });
+    }
+    );
 });

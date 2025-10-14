@@ -56,12 +56,13 @@ const VideoCalling = () => {
         socket.on('incoming:call', handleIncomingCall);
         socket.on('call:accepted', handleCallAccepted);
         socket.on('peer:nego:needed', handleNegoNeeded);
+        socket.on('peer:nego:final', handleNegoNeedFinal);
         return () => {
             socket.off('user:join', handleUserJoined);
             socket.off('incoming:call', handleIncomingCall);
             socket.off('call:accepted', handleCallAccepted);
             socket.off('peer:nego:needed', handleNegoNeedIncoming);
-
+            socket.off('peer:nego:final', handleNegoNeedFinal);
         }
     }, [socket, handleUserJoined]);
 
@@ -78,6 +79,7 @@ const VideoCalling = () => {
     const handleCallUser = useCallback(async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            {myStream && <button onClick={sendStreams}>Send Stream</button>}
             const offer = await peer.getOffer();
             socket.emit('user:call', { to: remoteSocketId, offer });
             setMyStream(stream);
@@ -90,18 +92,23 @@ const VideoCalling = () => {
         }
     }, [remoteSocketId]);
 
-    const handleCallAccepted = useCallback(async ({ from, answer }) => {
-        peer.setLocalDescription(answer);
-        console.log(`Call accepted by ${from} with answer:`, answer);
+    const sendStreams = useCallback(() => {
         for (const track of myStream.getTracks()) {
             peer.peer.addTrack(track, myStream);
         }
-    }, []);
+    }, [myStream]);
+
+    const handleCallAccepted = useCallback(async ({ from, answer }) => {
+        peer.setLocalDescription(answer);
+        console.log(`Call accepted by ${from} with answer:`, answer);
+        sendStreams();
+    }, [sendStreams]);
 
     useEffect(() => {
         peer.peer.addEventListener('track', async ev => {
             const remoteStream = ev.streams;
-            setRemoteStream(remoteStream);
+            console.log('Received remote stream:', remoteStream); 
+            setRemoteStream(remoteStream[0]);
         }, []);
     });
     const handleNegoNeeded = useCallback(async () => {
@@ -116,6 +123,15 @@ const VideoCalling = () => {
         }
 }, []);
 
+    const handleNegoNeedIncoming = useCallback(async ({ from, offer }) => {
+        await peer.setLocalDescription(offer);
+        const answer = await peer.getAnswer();
+        socket.emit('peer:nego:done', { to: from, answer });
+    }, []);
+
+    const handleNegoNeedFinal = useCallback(async ({ from, answer }) => {
+        await peer.setLocalDescription(answer);
+    }, []);
 
     if (isJoined) {
         return (
