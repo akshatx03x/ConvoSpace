@@ -1,3 +1,4 @@
-# TODO: Fix handleCallUser not sending request when connected to user
-
-- [x] Fix useCallback dependency array for handleCallUser in VideoCalling.jsx to include remoteSocketId
+- [ ] Fix video props in VideoCalling.jsx: Change url to srcObject for local and remote video elements
+- [ ] Add useEffect in VideoCalling.jsx to set remoteVideoRef.srcObject when remoteStream updates
+- [ ] Set localVideoRef.srcObject in handleIncomingCall in VideoCalling.jsx
+- [ ] Correct setLocalDescription method in Peer.js to setRemoteDescription
