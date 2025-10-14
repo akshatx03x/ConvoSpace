@@ -12,6 +12,7 @@ const VideoCalling = () => {
     const [isJoined, setIsJoined] = useState(false);
     const [remoteSocketId, setRemoteSocketId] = useState(null);
     const [myStream, setMyStream] = useState(null);
+    const [remoteStream, setRemoteStream] = useState(null);
 
     const localVideoRef = useRef();
     const remoteVideoRef = useRef();
@@ -54,10 +55,12 @@ const VideoCalling = () => {
         socket.on('user:join', handleUserJoined);
         socket.on('incoming:call', handleIncomingCall);
         socket.on('call:accepted', handleCallAccepted);
+        socket.on('peer:nego:needed', handleNegoNeeded);
         return () => {
             socket.off('user:join', handleUserJoined);
             socket.off('incoming:call', handleIncomingCall);
             socket.off('call:accepted', handleCallAccepted);
+            socket.off('peer:nego:needed', handleNegoNeedIncoming);
 
         }
     }, [socket, handleUserJoined]);
@@ -87,10 +90,32 @@ const VideoCalling = () => {
         }
     }, [remoteSocketId]);
 
-        const handleCallAccepted = useCallback(async ({from, answer }) => {
-            peer.setLocalDescription(answer);
-            console.log(`Call accepted by ${from} with answer:`, answer);
+    const handleCallAccepted = useCallback(async ({ from, answer }) => {
+        peer.setLocalDescription(answer);
+        console.log(`Call accepted by ${from} with answer:`, answer);
+        for (const track of myStream.getTracks()) {
+            peer.peer.addTrack(track, myStream);
+        }
+    }, []);
+
+    useEffect(() => {
+        peer.peer.addEventListener('track', async ev => {
+            const remoteStream = ev.streams;
+            setRemoteStream(remoteStream);
         }, []);
+    });
+    const handleNegoNeeded = useCallback(async () => {
+            const offer = await peer.getOffer();
+            socket.emit('peer:nego:needed', { to: remoteSocketId, offer })
+        }, [remoteSocketId]);
+
+    useEffect(() => {
+        peer.peer.addEventListener('negotiationneeded', handleNegoNeeded )
+        return () => {
+            peer.peer.removeEventListener('negotiationneeded', handleNegoNeeded)
+        }
+}, []);
+
 
     if (isJoined) {
         return (
@@ -115,6 +140,7 @@ const VideoCalling = () => {
                         <h4 className="mb-2">You</h4>
                         <video
                             ref={localVideoRef}
+                            url={myStream}
                             autoPlay
                             muted
                             playsInline
@@ -127,6 +153,7 @@ const VideoCalling = () => {
                         <h4 className="mb-2">Remote</h4>
                         <video
                             ref={remoteVideoRef}
+                            url={remoteStream}
                             autoPlay
                             playsInline
                             className="w-[400px] h-[300px] rounded-lg bg-gray-300"
