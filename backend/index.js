@@ -76,9 +76,8 @@ io.on("connection", async (socket) => {
     socket.on("room:join", (data) => {
         const { room } = data;
         const email = socket.user.email;
+        io.to(room).emit("user:join", { email, id: socket.id });
         socket.join(room);
-        socket.to(room).emit("room:joined", `User with ID: ${socket.id} joined the room`);
-        io.to(socket.id).emit("room:joined", { email, room });
         emailtoSocketIdMap.set(email, socket.id);
         socketIdToEmailMap.set(socket.id, email);
         io.to(socket.id).emit("room:join", { email, room });
@@ -86,5 +85,11 @@ io.on("connection", async (socket) => {
 
     socket.on("disconnect", () => {
         console.log(`User with ID: ${socket.id} disconnected`);
+    });
+    socket.on("user:call", ({to, offer}) => {
+        io.to(to).emit("incoming:call", { from: socket.id, offer });
+    });
+    socket.on("call:accepted", ({to, answer}) => {
+        io.to(to).emit("call:accepted", { from: socket.id, answer });
     });
 });
