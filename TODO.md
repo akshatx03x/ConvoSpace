@@ -1,4 +1,0 @@
-- [ ] Fix video props in VideoCalling.jsx: Change url to srcObject for local and remote video elements
-- [ ] Add useEffect in VideoCalling.jsx to set remoteVideoRef.srcObject when remoteStream updates
-- [ ] Set localVideoRef.srcObject in handleIncomingCall in VideoCalling.jsx
-- [ ] Correct setLocalDescription method in Peer.js to setRemoteDescription
