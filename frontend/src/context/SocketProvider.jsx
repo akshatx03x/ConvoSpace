@@ -1,4 +1,4 @@
-import React, {createContext, useMemo, useContext} from 'react'
+import React, {createContext, useMemo, useContext } from 'react'
 import {io} from 'socket.io-client'
 
 const SocketContext = createContext(null)
@@ -9,7 +9,7 @@ export const useSocket=()=>{
 }
 
 const SocketProvider = (props) => {
-  const socket = useMemo(() => io("http://localhost:5000", {
+  const socket = useMemo(() => io(import.meta.env.VITE_API_BASE_URL, {
     auth: {
       token: localStorage.getItem('token')
     }

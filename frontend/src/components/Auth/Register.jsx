@@ -23,7 +23,7 @@ const Register = () => {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/register", formData, {
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/register`, formData, {
         withCredentials: true,
       });
       localStorage.setItem("token", response.data.token);
