@@ -126,8 +126,8 @@ Output should be *valid Markdown*, ready to copy-paste into a GitHub repo.
     }
 
     setIsSearching(true);
-    setIsPreviewing(true); 
-    setResponseText(''); 
+    setIsPreviewing(true);
+    setResponseText('');
     const payload = {
       "contents": [
         {
@@ -141,7 +141,7 @@ Output should be *valid Markdown*, ready to copy-paste into a GitHub repo.
     };
 
     try {
-      const response = await fetch(URL, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/gemini`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
