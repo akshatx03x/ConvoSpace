@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useSocket } from './SocketProvider'
 import peer from '../services/Peer.js'
+import GeminiChatUI from '../pages/GeminiUi.jsx'
 
 const THEME_MAIN_BG = '#c3a6a0'
 const THEME_LIGHT_CARD_BG = '#F0EBEA'
@@ -169,45 +170,67 @@ const VideoCalling = () => {
   if (isJoined) {
     return (
       <div className="flex w-full h-screen justify-center items-center p-4 pt-16" style={{ backgroundColor: THEME_MAIN_BG }}>
-        <div className="flex w-full max-w-7xl h-[85vh] rounded-[40px] shadow-2xl overflow-hidden" style={{ backgroundColor: THEME_LIGHT_CARD_BG }}>
-          <div className="flex flex-col w-2/3 p-8 space-y-6">
-            <h2 className="text-4xl font-extrabold tracking-tight" style={{ color: THEME_TEXT_COLOR }}>
+        {/* Centered container: takes only 2/3 of screen width */}
+        <div className="flex w-2/3 max-w-6xl h-[85vh] rounded-[40px] shadow-2xl overflow-hidden" style={{ backgroundColor: THEME_LIGHT_CARD_BG }}>
+
+          {/* 1. NARROW SIDEBAR - Left aligned, smaller width */}
+          <div className="w-1/4 flex flex-col justify-end p-6" style={{ background: GRADIENT_BG_DASHBOARD }}>
+            <p className="text-white text-right text-xl font-light italic opacity-90">
+              Finally, Get your Advantage.
+            </p>
+            <p className="text-white text-right text-xs font-light mt-2">
+              Video Calling powered by WebRTC.
+            </p>
+          </div>
+
+          {/* 2. MAIN VIDEO CONTENT - Takes remaining width */}
+          <div className="flex flex-col w-3/4 p-6 space-y-6 justify-between">
+            <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: THEME_TEXT_COLOR }}>
               Room: <span className="text-gray-600 font-medium">{room}</span>
             </h2>
+            
             {error && <p className="text-red-500 text-center font-semibold">{error}</p>}
-            <div className="flex flex-row gap-6 justify-center flex-grow">
+            
+            <div className="flex flex-row gap-4 justify-center flex-grow">
               <div className="flex flex-col items-center p-3 bg-white/70 rounded-3xl shadow-xl backdrop-blur-sm transition duration-300 hover:shadow-2xl transform hover:scale-[1.01] flex-1 min-w-0">
                 <h4 className="mb-2 text-lg font-semibold" style={{ color: THEME_ACCENT_COLOR }}>You (Local)</h4>
                 <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover rounded-2xl bg-black shadow-inner" />
               </div>
               <div className="flex flex-col items-center p-3 bg-white/70 rounded-3xl shadow-xl backdrop-blur-sm flex-1 min-w-0">
-                <h4 className="mb-2 text-lg font-semibold" style={{ color: THEME_ACCENT_COLOR }}>Remote {remoteSocketId ? 'Connected' : 'Waiting...'}</h4>
+                <h4 className="mb-2 text-lg font-semibold" style={{ color: THEME_ACCENT_COLOR }}>
+                  Remote {remoteSocketId ? 'Connected' : 'Waiting...'}
+                </h4>
                 <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover rounded-2xl bg-gray-300 shadow-inner" />
               </div>
             </div>
+
             <div className="flex justify-center p-3 space-x-4 bg-white/50 rounded-full shadow-lg">
               {remoteSocketId && (
-                <button onClick={handleCallUser} className="px-6 py-3 text-white font-extrabold rounded-full shadow-lg transition duration-300 transform hover:scale-[1.05]" style={{ backgroundColor: remoteStream ? '#4CAF50' : THEME_ACCENT_COLOR }}>
+                <button 
+                  onClick={handleCallUser} 
+                  className="px-6 py-3 text-white font-extrabold rounded-full shadow-lg transition duration-300 transform hover:scale-[1.05]" 
+                  style={{ backgroundColor: remoteStream ? '#4CAF50' : THEME_ACCENT_COLOR }}
+                >
                   {remoteStream ? 'Call Active' : 'Start Call'}
                 </button>
               )}
-              <button className="px-6 py-3 text-white font-extrabold rounded-full shadow-lg transition duration-300 transform hover:scale-[1.05]" style={{ backgroundColor: THEME_ACCENT_COLOR, opacity: 0.8 }}>
+              <button 
+                className="px-6 py-3 text-white font-extrabold rounded-full shadow-lg transition duration-300 transform hover:scale-[1.05]" 
+                style={{ backgroundColor: THEME_ACCENT_COLOR, opacity: 0.8 }}
+              >
                 Mic/Camera Controls
               </button>
-              <button onClick={handleLeaveMeeting} className="px-6 py-3 bg-red-600 text-white font-extrabold rounded-full shadow-lg transition duration-300 transform hover:scale-[1.05]">
+              <button 
+                onClick={handleLeaveMeeting} 
+                className="px-6 py-3 bg-red-600 text-white font-extrabold rounded-full shadow-lg transition duration-300 transform hover:scale-[1.05]"
+              >
                 End Call
               </button>
             </div>
           </div>
-          <div className="w-1/3 flex flex-col justify-end p-10" style={{ background: GRADIENT_BG_DASHBOARD }}>
-            <p className="text-white text-right text-3xl font-light italic opacity-90">
-              Finally, Get your Advantage.
-            </p>
-            <p className="text-white text-right text-sm font-light mt-2">
-              Video Calling powered by WebRTC.
-            </p>
-          </div>
         </div>
+
+        <GeminiChatUI />
       </div>
     )
   }
@@ -241,6 +264,7 @@ const VideoCalling = () => {
           </p>
         </div>
       </div>
+
     </div>
   )
 }
