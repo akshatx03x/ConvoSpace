@@ -146,7 +146,7 @@ const GeminiChatUI = forwardRef((props, ref) => {
 
       <div className="w-full flex-shrink-0">
         <div className="w-full max-w-lg mx-auto">
-          <div className="relative flex items-end p-2 rounded-full shadow-2xl" style={{ backgroundColor: 'white', border: `2px solid ${THEME_ACCENT_COLOR}60` }}>
+          <div className="relative flex items-end p-2 rounded-3xl shadow-2xl" style={{ backgroundColor: 'white', border: `2px solid ${THEME_ACCENT_COLOR}60` }}>
             <div className="flex items-center justify-center p-2 mr-2">
               <span className="font-extrabold text-lg" style={{ color: THEME_ACCENT_COLOR }}>ConvoSpace</span>
             </div>
@@ -161,7 +161,7 @@ const GeminiChatUI = forwardRef((props, ref) => {
               rows="1"
             />
             <button
-              className="p-3 rounded-full shadow-md transition-colors duration-200 hover:scale-[1.05]"
+              className="p-3 rounded-xl shadow-md transition-colors duration-200 hover:scale-[1.05]"
               style={{ backgroundColor: THEME_ACCENT_COLOR }}
               onClick={() => handleAsk()}
               disabled={!query.trim()}
