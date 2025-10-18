@@ -120,9 +120,9 @@ const GeminiChatUI = forwardRef((props, ref) => {
                 <button
                   onClick={handleCopy}
                   className="px-4 py-2 rounded-full text-sm font-medium shadow-md transition-colors duration-200"
-                  style={{ backgroundColor: isCopied ? '#4CAF50' : THEME_ACCENT_COLOR, color: 'white', borderColor: THEME_ACCENT_COLOR }}
+                  style={{ backgroundColor:  THEME_ACCENT_COLOR, color: 'white', borderColor: THEME_ACCENT_COLOR }}
                 >
-                  {isCopied ? 'Copied! 🎉' : 'Copy'}
+                  {isCopied ? 'Copied! ' : 'Copy'}
                 </button>
                 <button
                   onClick={handlePreview}

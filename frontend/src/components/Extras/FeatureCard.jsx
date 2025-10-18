@@ -30,7 +30,7 @@ const features = [
 const FeatureCard = () => {
   return (
     <div 
-      className="w-[320px] min-h-screen p-6 m-10 rounded-3xl shadow-2xl flex flex-col gap-6 absolute right-10 top-20"
+      className="w-[320px] h-170 p-6 m-10 rounded-3xl shadow-2xl flex flex-col gap-6 absolute right-10 top-20"
       style={{ backgroundColor: THEME_LIGHT_CARD_BG }}
     >
       <h3 className="text-2xl font-extrabold mb-4" style={{ color: THEME_TEXT_COLOR }}>
@@ -40,7 +40,7 @@ const FeatureCard = () => {
       {features.map((feature, index) => (
         <div 
           key={index} 
-          className="flex items-start gap-4 p-5 rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+          className="flex items-start gap-1 p-3 rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer"
           style={{ 
             background: `linear-gradient(145deg, ${THEME_ACCENT_COLOR}15, ${THEME_ACCENT_COLOR}05)`, 
             border: `1px solid ${THEME_ACCENT_COLOR}40`

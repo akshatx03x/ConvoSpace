@@ -23,9 +23,9 @@ const QuotesTicker = () => {
   }, [])
 
   return (
-    <div className=" h-[100px] p-5" >
+    <div className=" h-[100px] flex justify-center m-18 mb-5 " >
     <div 
-      className="py-3 m-8  w-2/3 px-6 mb-6 rounded-xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer border-2 bg-[#F0EBEA]  border-gray-300 "
+      className="py-3 m-5  w-2/3 px-6 flex justify-center mb-6 rounded-xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer border-2 bg-[#F0EBEA]  border-gray-300 "
       style={{ backgroundColor:  {THEME_LIGHT_CARD_BG}}}
     >
       <p className="text-lg font-medium text-gray-800">
