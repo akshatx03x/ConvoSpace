@@ -5,6 +5,7 @@
     import FeatureCard from '../components/Extras/FeatureCard.jsx'
 import QuotesTicker from '../components/Extras/Quotes.jsx'
 import About from '../components/Extras/About.jsx'
+import Footer from '../components/Extras/Footer.jsx'
 
     const THEME_MAIN_BG = '#c3a6a0'
     const THEME_LIGHT_CARD_BG = '#F0EBEA'
@@ -168,7 +169,7 @@ if (!isJoined) {
     >
       <div className='flex justify-center font-medium border-2 border-gray-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer w-2/3 mx-8 p-2 my-5 rounded-b-2xl' style={{backgroundColor:THEME_LIGHT_CARD_BG}}>"Collaborate seamlessly. Innovate effortlessly. Your work, connected." </div>
       <div className="w-2/3 h-[550px] rounded-2xl overflow-hidden flex  m-8 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer" style={{ backgroundColor: THEME_LIGHT_CARD_BG }}>
-        <div className="w-2/3 p-12 flex flex-col justify-center ">
+        <div className="w-3/4 p-12 flex flex-col justify-center ">
         
           <h1 className="text-5xl font-extrabold mb-2 " style={{ color: THEME_TEXT_COLOR }}>Hello Again!</h1>
           <p className="text-md text-gray-500 mb-8">Let's get started with your 30 days trial</p>
@@ -190,7 +191,7 @@ if (!isJoined) {
             </button>
           </form>
         </div>
-        <div className="w-1/2 flex flex-col justify-end p-10" style={{ background: GRADIENT_BG_JOIN }}>
+        <div className="w-1/2 flex flex-col justify-end p-10 rounded-2xl" style={{ background: GRADIENT_BG_JOIN }}>
           <p className="text-white text-right text-3xl font-light italic">"Connect, collaborate, and conquer."</p>
           <p className="text-white text-right text-lg font-bold mt-4">Your Advantage Awaits.</p>
         </div>
@@ -198,6 +199,7 @@ if (!isJoined) {
       <QuotesTicker/>
       <FeatureCard/>
       <About/>
+      <Footer/>
     </div>
   )
 }

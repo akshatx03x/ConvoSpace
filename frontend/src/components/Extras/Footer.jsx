@@ -1,55 +1,46 @@
-import React from "react";
+import React from 'react'
 
-const THEME_LIGHT_BG = '#eed9de';
-const THEME_ACCENT_COLOR = '#A06C78';
-const THEME_TEXT_COLOR = '#333333';
-const THEME_HOVER_COLOR = '#b87c8a';
+const THEME_MAIN_BG = '#c3a6a0'
+const THEME_ACCENT_COLOR = '#A06C78'
+const THEME_TEXT_COLOR = '#333333'
 
 const Footer = () => {
   return (
     <footer
-      className="w-full mt-10 py-6 shadow-inner flex flex-col items-center justify-center border-t border-white/30 backdrop-blur-md"
-      style={{ backgroundColor: THEME_LIGHT_BG }}
+      className="w-full py-8 px-6 md:px-10 my-5 rounded-2xl text-center md:text-left"
+      style={{ backgroundColor: '#d9bdb8', color: THEME_TEXT_COLOR }}
     >
-      <div className="flex space-x-6 mb-3">
-        <a
-          href="#"
-          className="text-sm font-semibold transition-colors duration-300 hover:underline"
-          style={{ color: THEME_ACCENT_COLOR }}
-        >
-          About
-        </a>
-        <a
-          href="#"
-          className="text-sm font-semibold transition-colors duration-300 hover:underline"
-          style={{ color: THEME_ACCENT_COLOR }}
-        >
-          Contact
-        </a>
-        <a
-          href="#"
-          className="text-sm font-semibold transition-colors duration-300 hover:underline"
-          style={{ color: THEME_ACCENT_COLOR }}
-        >
-          Privacy Policy
-        </a>
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold" style={{ backgroundColor: '#black' }}>
+            Advantage
+          </h2>
+          <p className="text-sm max-w-sm">
+            Designed to simplify teamwork and spark innovation.
+            Advantage helps teams stay connected, organized, and inspired — wherever they are.
+          </p>
+        </div>
+
+        <div className="flex gap-6 text-sm font-medium">
+          <a href="#" className="hover:underline hover:text-[#A06C78] transition">
+            Features
+          </a>
+          <a href="#" className="hover:underline hover:text-[#A06C78] transition">
+            Pricing
+          </a>
+          <a href="#" className="hover:underline hover:text-[#A06C78] transition">
+            Support
+          </a>
+        </div>
+
+        {/* Right Side */}
+        <div className="text-sm text-gray-800 text-center md:text-right leading-tight">
+          <p>Built with passion and precision 💡</p>
+          <p>© {new Date().getFullYear()} Advantage Technologies</p>
+        </div>
       </div>
-
-      <p
-        className="text-sm text-center font-medium tracking-wide"
-        style={{ color: THEME_TEXT_COLOR }}
-      >
-        © {new Date().getFullYear()} GroupMeet. All rights reserved.
-      </p>
-
-      <p
-        className="text-xs mt-1 italic text-center"
-        style={{ color: THEME_ACCENT_COLOR }}
-      >
-        Built with ❤️ using React & Socket.io
-      </p>
     </footer>
-  );
-};
+  )
+}
 
-export default Footer;
+export default Footer

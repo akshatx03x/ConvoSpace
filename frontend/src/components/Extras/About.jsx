@@ -68,7 +68,7 @@ const About = () => {
       </div>
 
       {/* Small tagline below */}
-      <p className="mt-10 text-gray-100 text-lg font-medium tracking-wide transition-transform duration-300 hover:scale-105">
+      <p className="mt-10 text-black font-bold italic underline underline-offset-4 text-xl  tracking-wide transition-transform duration-300 hover:scale-105">
         Empowering modern work with clarity, connection, and creativity.
       </p>
     </div>
