@@ -9,6 +9,7 @@ import geminiRoutes from './routes/geminiRoute.js';
 import {Server} from 'socket.io';
 import jwt from 'jsonwebtoken';
 import User from './models/UserModel.js';
+import { deleteAllFiles } from './controllers/fileController.js';
 
 const app = express();
 dotenv.config();
@@ -60,6 +61,7 @@ app.set('io', io);
 
 const emailtoSocketIdMap = new Map();
 const socketIdToEmailMap = new Map();
+const roomUsers = new Map(); // Track users per room
 
 io.on("connection", async (socket) => {
     const token = socket.handshake.auth.token;
@@ -87,11 +89,61 @@ io.on("connection", async (socket) => {
         socket.join(room);
         emailtoSocketIdMap.set(email, socket.id);
         socketIdToEmailMap.set(socket.id, email);
+
+        // Track users in room
+        if (!roomUsers.has(room)) {
+            roomUsers.set(room, new Set());
+        }
+        roomUsers.get(room).add(socket.id);
+
         io.to(socket.id).emit("room:join", { email, room });
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
         console.log(`User with ID: ${socket.id} disconnected`);
+
+        // Remove user from room tracking
+        for (const [room, users] of roomUsers.entries()) {
+            if (users.has(socket.id)) {
+                users.delete(socket.id);
+                // If room is empty, delete all files for that room
+                if (users.size === 0) {
+                    roomUsers.delete(room);
+                    try {
+                        // Create a mock request object for the controller
+                        const mockReq = {
+                            query: { room },
+                            app: app // Pass the app instance to access io if needed
+                        };
+                        const mockRes = {
+                            status: (code) => ({
+                                json: (data) => {
+                                    if (code === 200) {
+                                        console.log(`All files deleted for empty room: ${room}`);
+                                    } else {
+                                        console.error(`Failed to delete files for room: ${room}`, data);
+                                    }
+                                }
+                            })
+                        };
+                        await deleteAllFiles(mockReq, mockRes);
+
+                        // Clear notes for the room from all clients in the room
+                        io.to(room).emit('clear:notes');
+                    } catch (error) {
+                        console.error(`Error deleting files for room ${room}:`, error);
+                    }
+                }
+                break;
+            }
+        }
+
+        // Clean up maps
+        const email = socketIdToEmailMap.get(socket.id);
+        if (email) {
+            emailtoSocketIdMap.delete(email);
+            socketIdToEmailMap.delete(socket.id);
+        }
     });
     socket.on("user:call", ({to, offer}) => {
         io.to(to).emit("incoming:call", { from: socket.id, offer });
@@ -107,4 +159,9 @@ io.on("connection", async (socket) => {
         io.to(to).emit('peer:nego:final', { from: socket.id, answer });
     }
     );
+
+    socket.on('send:message', ({ room, message }) => {
+        const name = socket.user.name;
+        socket.to(room).emit('receive:message', { name, message });
+    });
 });

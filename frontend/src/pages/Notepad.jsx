@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useSocket } from '../context/SocketProvider';
 
 // Theme Constants derived from the FileUploader component
 const THEME_LIGHT_CARD_BG = '#F0EBEA';
 const THEME_ACCENT_COLOR = '#A06C78';
 const THEME_TEXT_COLOR = '#333333';
 
-const Notepad = () => {
+const Notepad = ({ room }) => {
     // NOTE: This application uses localStorage for simple persistence.
     // For production or collaborative apps, use a proper database like Firestore.
     const [notes, setNotes] = useState([]);
@@ -13,16 +14,34 @@ const Notepad = () => {
     const [content, setContent] = useState('');
     const [editingIndex, setEditingIndex] = useState(null);
 
-    // Load saved notes from localStorage on mount
+    // Load saved notes from localStorage on mount or when room changes
     useEffect(() => {
-        const savedNotes = JSON.parse(localStorage.getItem('notes')) || [];
+        const savedNotes = JSON.parse(localStorage.getItem(`notes_${room}`)) || [];
         setNotes(savedNotes);
-    }, []);
+    }, [room]);
 
     // Save notes to localStorage whenever they change
     useEffect(() => {
-        localStorage.setItem('notes', JSON.stringify(notes));
-    }, [notes]);
+        localStorage.setItem(`notes_${room}`, JSON.stringify(notes));
+    }, [notes, room]);
+
+    const socket = useSocket();
+
+    // Listen for clear notes event from socket
+    useEffect(() => {
+        if (socket) {
+            const handleClearNotes = () => {
+                setNotes([]);
+                localStorage.removeItem(`notes_${room}`);
+            };
+
+            socket.on('clear:notes', handleClearNotes);
+
+            return () => {
+                socket.off('clear:notes', handleClearNotes);
+            };
+        }
+    }, [socket, room]);
 
     const handleSaveNote = () => {
         if (!title.trim() && !content.trim()) return;
@@ -80,9 +99,12 @@ const Notepad = () => {
 
     return (
         // Main container uses the light background color
-        <div
-            className="h-full w-full p-4 flex flex-col font-sans overflow-y-auto rounded-xl"
-            style={{ backgroundColor: THEME_LIGHT_CARD_BG }}
+        <div className="flex flex-col  h-full w-full p-4 font-sans overflow-y-auto rounded-xl shadow-xl overflow-hidden"
+		style={{
+			height: '590px', 
+			backgroundColor: THEME_LIGHT_CARD_BG ,
+			color: THEME_TEXT_COLOR,
+		}}
         >
             {/* Primary Card Container - Consistent with FileUploader */}
             <div

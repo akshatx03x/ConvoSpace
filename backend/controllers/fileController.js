@@ -67,18 +67,58 @@ export const downloadFile = async (request, response) => {
     }
 }
 
+export const deleteFile = async (request, response) => {
+    try {
+        const file = await File.findById(request.params.fileId);
+        if (!file) {
+            return response.status(404).json({ message: "File not found" });
+        }
+
+        // Delete file from file system
+        if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
+
+        // Delete from database
+        await File.findByIdAndDelete(request.params.fileId);
+        console.log('File deleted:', file.name);
+
+        // Emit file deleted event to the room
+        const io = request.app.get('io');
+        io.to(file.room).emit('file:deleted', {
+            fileId: file._id,
+            name: file.name,
+            uploader: file.uploader
+        });
+
+        return response.status(200).json({ message: "File deleted successfully" });
+    } catch (error) {
+        console.error('Error deleting file:', error);
+        return response.status(500).json({ message: "Internal server error" });
+    }
+}
+
 export const deleteAllFiles = async (request, response) => {
     try {
-        const files = await File.find({});
+        const room = request.query.room;
+        if (!room) {
+            return response.status(400).json({ message: "Room parameter is required" });
+        }
+        const files = await File.find({ room });
         for (const file of files) {
             // Delete file from file system
-            if (fs.existsSync(file.path)) {
-                fs.unlinkSync(file.path);
+            try {
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+            } catch (fileError) {
+                console.error(`Error deleting file ${file.path}:`, fileError);
+                // Continue with other files even if one fails
             }
         }
-        // Delete all files from database
-        await File.deleteMany({});
-        console.log('All files deleted');
+        // Delete all files from database for the room
+        await File.deleteMany({ room });
+        console.log(`All files deleted for room: ${room}`);
         return response.status(200).json({ message: "All files deleted successfully" });
     } catch (error) {
         console.error('Error deleting files:', error);

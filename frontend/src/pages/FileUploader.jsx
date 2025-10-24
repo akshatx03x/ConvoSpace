@@ -8,6 +8,7 @@ const THEME_TEXT_COLOR = '#333333';
 import { uploadFile } from '../services/fileupload.js';
 import { getFiles } from '../services/getFiles.js';
 import { downloadFile } from '../services/downloadFile.js';
+import { deleteFile } from '../services/deleteFile.js';
 
 const UploadCloudIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-cloud-upload">
@@ -42,6 +43,17 @@ const FileUploader = ({ refreshKey, room }) => {
         if (socket) {
             socket.on('file:shared', (data) => {
                 // Refresh the file list when a new file is shared
+                const fetchFiles = async () => {
+                    if (room) {
+                        const updatedData = await getFiles(room);
+                        setUploadedFiles(updatedData.files || []);
+                    }
+                };
+                fetchFiles();
+            });
+
+            socket.on('file:deleted', (data) => {
+                // Refresh the file list when a file is deleted
                 const fetchFiles = async () => {
                     if (room) {
                         const updatedData = await getFiles(room);
@@ -152,12 +164,25 @@ const FileUploader = ({ refreshKey, room }) => {
                                 {uploadedFiles.map((file, index) => (
                                     <li key={index} className="text-xs flex justify-between items-center">
                                         <span>{file.name}</span>
-                                        <button
-                                            onClick={() => downloadFile(file._id, file.name)}
-                                            className="ml-2 px-2 py-1 text-xs rounded bg-blue-500 text-white hover:bg-blue-600"
-                                        >
-                                            Download
-                                        </button>
+                                        <div className="flex space-x-1">
+                                            <button
+                                                onClick={() => downloadFile(file._id, file.name)}
+                                                className="px-2 py-1 text-xs rounded bg-blue-500 text-white hover:bg-blue-600"
+                                            >
+                                                Download
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    await deleteFile(file._id);
+                                                    // Refresh the file list after deletion
+                                                    const updatedData = await getFiles(room);
+                                                    setUploadedFiles(updatedData.files || []);
+                                                }}
+                                                className="px-2 py-1 text-xs rounded bg-red-500 text-white hover:bg-red-600"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </li>
                                 ))}
                             </ul>

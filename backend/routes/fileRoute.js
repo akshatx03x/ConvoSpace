@@ -17,9 +17,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+import { deleteFile } from '../controllers/fileController.js';
+
 router.post('/upload', protect, upload.single('file'), uploadFile);
 router.get('/files', protect, getFiles);
 router.get('/files/:fileId', protect, downloadFile);
+router.delete('/files/:fileId', protect, deleteFile);
 router.delete('/files/delete-all', protect, deleteAllFiles);
 
 export default router;

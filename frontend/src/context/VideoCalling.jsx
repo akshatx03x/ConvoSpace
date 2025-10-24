@@ -7,7 +7,7 @@ import QuotesTicker from '../components/Extras/Quotes.jsx'
 import About from '../components/Extras/About.jsx'
 import Footer from '../components/Extras/Footer.jsx'
 import FileUploader from '../pages/FileUploader.jsx'
-import { deleteAllFiles } from '../services/deleteAllFiles.js'
+
 import Notepad from '../pages/Notepad.jsx'
 import Chats from '../pages/chats.jsx'
 
@@ -160,9 +160,10 @@ import Chats from '../pages/chats.jsx'
         setRemoteStream(null)
         setRoom("")
         setError(null)
-        // Delete all files when leaving the meeting
-        await deleteAllFiles()
+        // Files are now automatically deleted when the last user leaves the room
         setRefreshKey(prev => prev + 1)
+        // Clear notes for the room from localStorage
+        localStorage.removeItem(`notes_${room}`)
       }, [socket, room])
 
 if (!isJoined) {
@@ -213,6 +214,7 @@ if (!isJoined) {
 }
 
       return (
+        <div>
         <div 
           // 1. Main container is now flex-col and scrollable
           className="flex flex-col w-full p-0 m-0 overflow-y-auto" 
@@ -285,23 +287,29 @@ if (!isJoined) {
           </div>
 
 
-          {/* Section 2: Gemini UI and Notepad (Scrollable Section) 
-            Gemini is now here, taking 50% width.
+          {/* Section 2: Chats, Gemini UI, and Notepad (Scrollable Section) 
+            Fixed to use a 3-column layout (flex-1 for each).
           */}
           <div className="flex w-full p-4 gap-4 flex-shrink-0" style={{ minHeight: '80vh', paddingTop: '0' }}>
-            <Chats/>
-            {/* Gemini UI - Now uses flex-1 for 50% width (Previous FileUploader position) */}
+            
+            {/* Chats - Takes 1/3 of the width */}
+            <div className="flex-1">
+                <Chats room={room}/>
+            </div>
+            
+            {/* Gemini UI - Takes 1/3 of the width */}
             <div className="flex-1">
                 <GeminiChatUI/>
             </div>
 
-            {/* Notepad - Uses flex-1 for 50% width (Position remains the same) */}
+            {/* Notepad - Takes 1/3 of the width */}
             <div className="flex-1">
-                <Notepad/>
+                <Notepad room={room}/>
             </div>
-            
-          </div>
 
+          </div>
+        </div>
+        <Footer/>
         </div>
       )
     }

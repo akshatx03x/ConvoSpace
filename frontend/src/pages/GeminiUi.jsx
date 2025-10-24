@@ -111,7 +111,14 @@ const GeminiChatUI = forwardRef((props, ref) => {
   const showWelcomeScreen = !isSearching && responseText.trim() === '';
 
   return (
-    <div className="relative h-full flex flex-col rounded-xl p-4 pt-20" style={{ backgroundColor: THEME_LIGHT_CARD_BG }}>
+    <div className="relative h-full flex flex-col rounded-xl p-4 pt-20" style={{
+      height: '590px',
+      backgroundColor: THEME_LIGHT_CARD_BG,
+      color: THEME_TEXT_COLOR,
+    }}>
+      <div className="text-center mb-4">
+        <h1 style={{ color: THEME_ACCENT_COLOR, fontSize: '2rem', fontWeight: 'bold' }}>Ask With AI!!!</h1>
+      </div>
       <div className="flex-grow overflow-y-auto mb-4 p-2">
         {showWelcomeScreen ? <WelcomeScreen /> : (
           <div className="w-full max-w-lg mx-auto mb-4">
