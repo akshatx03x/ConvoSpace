@@ -1,12 +1,13 @@
-    import React, { useState, useEffect, useCallback, useRef } from 'react'
-    import { useSocket } from './SocketProvider'
-    import peer from '../services/Peer.js'
-    import GeminiChatUI from '../pages/GeminiUi.jsx'
-    import FeatureCard from '../components/Extras/FeatureCard.jsx'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useSocket } from './SocketProvider'
+import peer from '../services/Peer.js'
+import GeminiChatUI from '../pages/GeminiUi.jsx'
+import FeatureCard from '../components/Extras/FeatureCard.jsx'
 import QuotesTicker from '../components/Extras/Quotes.jsx'
 import About from '../components/Extras/About.jsx'
 import Footer from '../components/Extras/Footer.jsx'
 import FileUploader from '../pages/FileUploader.jsx'
+import { deleteAllFiles } from '../services/deleteAllFiles.js'
 
     const THEME_MAIN_BG = '#c3a6a0'
     const THEME_LIGHT_CARD_BG = '#F0EBEA'
@@ -25,6 +26,7 @@ import FileUploader from '../pages/FileUploader.jsx'
       const [myStream, setMyStream] = useState(null)
       const [remoteStream, setRemoteStream] = useState(null)
       const [error, setError] = useState(null)
+      const [refreshKey, setRefreshKey] = useState(0)
 
       const localVideoRef = useRef()
       const remoteVideoRef = useRef()
@@ -145,7 +147,7 @@ import FileUploader from '../pages/FileUploader.jsx'
         if (remoteStream && remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream
       }, [remoteStream])
 
-      const handleLeaveMeeting = useCallback(() => {
+      const handleLeaveMeeting = useCallback(async () => {
         if (myStreamRef.current) myStreamRef.current.getTracks().forEach(track => track.stop())
         if (peer.peer) peer.peer.close()
         socket.emit('room:leave', { room })
@@ -156,6 +158,9 @@ import FileUploader from '../pages/FileUploader.jsx'
         setRemoteStream(null)
         setRoom("")
         setError(null)
+        // Delete all files when leaving the meeting
+        await deleteAllFiles()
+        setRefreshKey(prev => prev + 1)
       }, [socket, room])
 
 if (!isJoined) {
@@ -255,11 +260,12 @@ if (!isJoined) {
               </div>
             </div>
           </div>
+
           <div className="w-[30%] h-full border-l border-gray-300 overflow-hidden">
             <GeminiChatUI />
           </div>
           
-            
+            <FileUploader refreshKey={refreshKey} />
         </div>
       )
     }

@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoute.js';
+import fileRoutes from './routes/fileRoute.js';
 import geminiRoutes from './routes/geminiRoute.js';
 import {Server} from 'socket.io';
 import jwt from 'jsonwebtoken';
@@ -37,6 +38,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use('/', authRoutes);
 app.use('/gemini', geminiRoutes);
+app.use('/', fileRoutes);
 app.get('/', (req, res) => {
     res.send('API is running...');
 });
