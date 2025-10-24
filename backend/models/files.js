@@ -12,6 +12,14 @@ const fileSchema = new mongoose.Schema({
         type: Number,
         required: true,
         default: 0
+    },
+    uploader:{
+        type:String,
+        required:true
+    },
+    room:{
+        type:String,
+        required:true
     }
 })
 const File = mongoose.models.File || mongoose.model("File", fileSchema);

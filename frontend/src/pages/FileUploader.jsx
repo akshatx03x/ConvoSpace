@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useRef, useState } from 'react';
+import { useSocket } from '../context/SocketProvider.jsx';
 const THEME_LIGHT_CARD_BG = '#F0EBEA';
 const THEME_ACCENT_COLOR = '#A06C78';
 const THEME_TEXT_COLOR = '#333333';
@@ -16,7 +17,8 @@ const UploadCloudIcon = () => (
     </svg>
 );
 
-const FileUploader = ({ refreshKey }) => {
+const FileUploader = ({ refreshKey, room }) => {
+    const socket = useSocket();
     // This state is purely for visual feedback/placeholding, as requested.
     const isDragging = false;
     const fileInputRef = useRef();
@@ -28,28 +30,46 @@ const FileUploader = ({ refreshKey }) => {
 
     useEffect(() => {
         const fetchFiles = async () => {
-            const data = await getFiles();
-            setUploadedFiles(data.files || []);
+            if (room) {
+                const data = await getFiles(room);
+                setUploadedFiles(data.files || []);
+            }
         };
         fetchFiles();
-    }, [refreshKey]);
+    }, [refreshKey, room]);
+
+    useEffect(() => {
+        if (socket) {
+            socket.on('file:shared', (data) => {
+                // Refresh the file list when a new file is shared
+                const fetchFiles = async () => {
+                    if (room) {
+                        const updatedData = await getFiles(room);
+                        setUploadedFiles(updatedData.files || []);
+                    }
+                };
+                fetchFiles();
+            });
+        }
+    }, [socket, room]);
 
     useEffect(() => {
         const getfile=async()=>{
-            if(file){
+            if(file && room){
                 const data= new FormData();
                 data.append('name',file.name);
                 data.append('file',file);
-                let response= await uploadFile(data);
+                data.append('room', room);
+                let response= await uploadFile(data, room);
                 if (response) {
                     // Refresh the file list after upload
-                    const updatedData = await getFiles();
+                    const updatedData = await getFiles(room);
                     setUploadedFiles(updatedData.files || []);
                 }
             }
         }
         getfile();
-    }, [file])
+    }, [file, room])
     const dropZoneClasses = `
         w-full p-4 border-4 border-dashed rounded-2xl
         flex flex-col items-center justify-center text-center
@@ -62,7 +82,7 @@ const FileUploader = ({ refreshKey }) => {
 
     return (
         <div
-            className="h-full p-4 flex flex-col font-sans overflow-y-auto"
+            className="h-full w-full p-4 flex flex-col font-sans overflow-y-auto rounded-xl"
             style={{ backgroundColor: THEME_LIGHT_CARD_BG }}
         >
             <div className="flex-1">

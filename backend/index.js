@@ -55,6 +55,9 @@ const io = new Server(server, {
     }
 });
 
+// Make io accessible in routes
+app.set('io', io);
+
 const emailtoSocketIdMap = new Map();
 const socketIdToEmailMap = new Map();
 

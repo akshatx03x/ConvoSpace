@@ -9,12 +9,22 @@ export const uploadFile = async (request, response) => {
 
     const fileObj = {
         path: request.file.path,
-        name: request.file.originalname
+        name: request.file.originalname,
+        uploader: request.user.email,
+        room: request.body.room
     };
 
     try {
         const file = await File.create(fileObj);
         console.log('File uploaded:', file.name);
+
+        // Emit file shared event to the room
+        const io = request.app.get('io');
+        io.to(request.body.room).emit('file:shared', {
+            fileId: file._id,
+            name: file.name,
+            uploader: file.uploader
+        });
 
         return response.status(200).json({
             path: `https://localhost:5000/files/${file._id}`,
@@ -29,7 +39,11 @@ export const uploadFile = async (request, response) => {
 
 export const getFiles = async (request, response) => {
     try {
-        const files = await File.find({});
+        const room = request.query.room;
+        if (!room) {
+            return response.status(400).json({ message: "Room parameter is required" });
+        }
+        const files = await File.find({ room });
         return response.status(200).json({ files });
     } catch (error) {
         console.error('Error fetching files:', error);

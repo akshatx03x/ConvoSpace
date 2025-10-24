@@ -1,0 +1,3 @@
+- [x] Create backend/middlewares/auth.js: Middleware to verify JWT from cookie, decode userId, fetch user, set request.user.
+- [x] Edit backend/routes/fileRoute.js: Import auth middleware, apply to upload, getFiles, downloadFile, deleteAllFiles routes.
+- [x] Test the upload endpoint after changes to ensure 200 response.

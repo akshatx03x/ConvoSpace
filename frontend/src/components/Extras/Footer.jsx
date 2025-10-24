@@ -12,8 +12,8 @@ const Footer = () => {
     >
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold" style={{ backgroundColor: '#black' }}>
-            Advantage
+          <h2 className="text-2xl font-bold underline underline-offset-2" style={{ backgroundColor: '#black' }}>
+            ConvoSpace
           </h2>
           <p className="text-sm max-w-sm">
             Designed to simplify teamwork and spark innovation.

@@ -8,6 +8,8 @@ import About from '../components/Extras/About.jsx'
 import Footer from '../components/Extras/Footer.jsx'
 import FileUploader from '../pages/FileUploader.jsx'
 import { deleteAllFiles } from '../services/deleteAllFiles.js'
+import Notepad from '../pages/Notepad.jsx'
+import Chats from '../pages/chats.jsx'
 
     const THEME_MAIN_BG = '#c3a6a0'
     const THEME_LIGHT_CARD_BG = '#F0EBEA'
@@ -212,60 +214,94 @@ if (!isJoined) {
 
       return (
         <div 
-          className="flex w-full p-0 m-0 overflow-hidden" 
+          // 1. Main container is now flex-col and scrollable
+          className="flex flex-col w-full p-0 m-0 overflow-y-auto" 
           style={{ 
             backgroundColor: THEME_MAIN_BG,
-            height: `calc(100vh - ${NAVBAR_HEIGHT})`,
+            minHeight: `calc(100vh - ${NAVBAR_HEIGHT})`,
             marginTop: NAVBAR_HEIGHT 
           }}
         >
-          <div className="flex-1 flex justify-center items-center p-4">
-            <div className="flex w-full max-w-5xl h-[85vh] rounded-xl shadow-2xl overflow-hidden" style={{ backgroundColor: THEME_LIGHT_CARD_BG }}>
-              <div className="w-1/6 flex flex-col justify-end p-6" style={{ background: GRADIENT_BG_DASHBOARD }}>
-                <p className="text-white text-right font-bold text-2xl italic opacity-90">Finally, Get your Advantage.</p>
-              </div>
-              <div className="flex flex-col w-5/6 p-6 space-y-6 justify-between border-l border-gray-300">
-                <h2 className="text-3xl font-extrabold" style={{ color: THEME_TEXT_COLOR }}>
-                  Room: <span className="text-gray-600 font-medium">{room}</span>
-                </h2>
-                <div className="flex flex-row gap-4 justify-center flex-grow ">
-                  <div className="flex flex-col items-center p-3 bg-white/70 rounded-2xl shadow-xl flex-1">
-                    <h4 className="mb-2 text-lg font-semibold" style={{ color: THEME_ACCENT_COLOR }}>You</h4>
-                    <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover rounded-2xl bg-black" />
-                  </div>
-                  <div className="flex flex-col items-center p-3 bg-white/70 rounded-2xl shadow-xl flex-1">
-                    <h4 className="mb-2 text-lg font-semibold" style={{ color: THEME_ACCENT_COLOR }}>
-                      Remote {remoteSocketId ? 'Connected' : 'Waiting...'}
-                    </h4>
-                    <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover rounded-2xl bg-gray-300" />
-                  </div>
+          
+          {/* Section 1: Video Calling and File Uploader (Visible on Load) */}
+          <div className="flex w-full p-4 gap-4 flex-shrink-0" 
+            style={{ 
+                height: '85vh', // Sets the initial visible height
+                maxHeight: '85vh', 
+            }}>
+            
+            {/* Video Call Section - 70% width */}
+            <div className="flex-1 flex justify-center items-center">
+                <div className="flex w-full h-full rounded-xl shadow-2xl overflow-hidden" style={{ backgroundColor: THEME_LIGHT_CARD_BG }}>
+                    {/* Sidebar/Branding */}
+                    <div className="w-1/6 flex flex-col justify-end p-6" style={{ background: GRADIENT_BG_DASHBOARD }}>
+                        <p className="text-white text-right font-bold text-2xl italic opacity-90">Finally, Get your Advantage.</p>
+                    </div>
+                    {/* Video and Controls */}
+                    <div className="flex flex-col w-5/6 p-6 space-y-6 justify-between border-l border-gray-300">
+                        <h2 className="text-3xl font-extrabold" style={{ color: THEME_TEXT_COLOR }}>
+                            Room: <span className="text-gray-600 font-medium">{room}</span>
+                        </h2>
+                        {/* Video Streams */}
+                        <div className="flex flex-row gap-4 justify-center flex-grow ">
+                            <div className="flex flex-col items-center p-3 bg-white/70 rounded-2xl shadow-xl flex-1">
+                                <h4 className="mb-2 text-lg font-semibold" style={{ color: THEME_ACCENT_COLOR }}>You</h4>
+                                <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover rounded-2xl bg-black" />
+                            </div>
+                            <div className="flex flex-col items-center p-3 bg-white/70 rounded-2xl shadow-xl flex-1">
+                                <h4 className="mb-2 text-lg font-semibold" style={{ color: THEME_ACCENT_COLOR }}>
+                                    Remote {remoteSocketId ? 'Connected' : 'Waiting...'}
+                                </h4>
+                                <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover rounded-2xl bg-gray-300" />
+                            </div>
+                        </div>
+                        {/* Controls */}
+                        <div className="flex justify-center p-3 space-x-4">
+                            {remoteSocketId && (
+                                <button
+                                    onClick={handleCallUser}
+                                    className="px-6 py-3 text-white font-extrabold rounded-full shadow-lg"
+                                    style={{ backgroundColor: remoteStream ? '#4CAF50' : THEME_ACCENT_COLOR }}
+                                >
+                                    {remoteStream ? 'Call Active' : 'Start Call'}
+                                </button>
+                            )}
+                            <button className="px-6 py-3 text-white font-extrabold rounded-xl shadow-lg" style={{ backgroundColor: THEME_ACCENT_COLOR }}>
+                                Mic/Camera
+                            </button>
+                            <button onClick={handleLeaveMeeting} className="px-6 py-3 bg-red-600 text-white font-extrabold rounded-xl shadow-lg">
+                                End Call
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex justify-center p-3 space-x-4">
-                  {remoteSocketId && (
-                    <button
-                      onClick={handleCallUser}
-                      className="px-6 py-3 text-white font-extrabold rounded-full shadow-lg"
-                      style={{ backgroundColor: remoteStream ? '#4CAF50' : THEME_ACCENT_COLOR }}
-                    >
-                      {remoteStream ? 'Call Active' : 'Start Call'}
-                    </button>
-                  )}
-                  <button className="px-6 py-3 text-white font-extrabold rounded-xl shadow-lg" style={{ backgroundColor: THEME_ACCENT_COLOR }}>
-                    Mic/Camera
-                  </button>
-                  <button onClick={handleLeaveMeeting} className="px-6 py-3 bg-red-600 text-white font-extrabold rounded-xl shadow-lg">
-                    End Call
-                  </button>
-                </div>
-              </div>
             </div>
+            
+            {/* File Uploader Section - (Previous Gemini Position) */}
+            <div className="w-[30%] h-full rounded-xl shadow-2xl border border-gray-300 overflow-hidden">
+                <FileUploader refreshKey={refreshKey} room={room} />
+            </div>
+            
           </div>
 
-          <div className="w-[30%] h-full border-l border-gray-300 overflow-hidden">
-            <GeminiChatUI />
+
+          {/* Section 2: Gemini UI and Notepad (Scrollable Section) 
+            Gemini is now here, taking 50% width.
+          */}
+          <div className="flex w-full p-4 gap-4 flex-shrink-0" style={{ minHeight: '80vh', paddingTop: '0' }}>
+            <Chats/>
+            {/* Gemini UI - Now uses flex-1 for 50% width (Previous FileUploader position) */}
+            <div className="flex-1">
+                <GeminiChatUI/>
+            </div>
+
+            {/* Notepad - Uses flex-1 for 50% width (Position remains the same) */}
+            <div className="flex-1">
+                <Notepad/>
+            </div>
+            
           </div>
-          
-            <FileUploader refreshKey={refreshKey} />
+
         </div>
       )
     }

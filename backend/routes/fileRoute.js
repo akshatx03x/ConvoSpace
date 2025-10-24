@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { uploadFile, downloadFile, getFiles, deleteAllFiles } from '../controllers/fileController.js';
+import { protect } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -16,9 +17,9 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post('/upload', upload.single('file'), uploadFile);
-router.get('/files', getFiles);
-router.get('/files/:fileId', downloadFile);
-router.delete('/files/delete-all', deleteAllFiles);
+router.post('/upload', protect, upload.single('file'), uploadFile);
+router.get('/files', protect, getFiles);
+router.get('/files/:fileId', protect, downloadFile);
+router.delete('/files/delete-all', protect, deleteAllFiles);
 
 export default router;

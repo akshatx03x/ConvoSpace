@@ -8,6 +8,7 @@ const THEME_TEXT_COLOR = '#333333'
 const About = () => {
   return (
     <div
+      id="about"
       className="min-h-screen w-full flex flex-col justify-center items-center rounded-3xl p-10 "
       style={{ backgroundColor: '#d9bdb8' }}
     >
@@ -68,7 +69,7 @@ const About = () => {
       </div>
 
       {/* Small tagline below */}
-      <p className="mt-10 text-black font-bold italic underline underline-offset-4 text-xl  tracking-wide transition-transform duration-300 hover:scale-105">
+      <p className="mt-10 text-[#A06C70] font-bold italic underline underline-offset-4 text-xl  tracking-wide transition-transform duration-300 hover:scale-105">
         Empowering modern work with clarity, connection, and creativity.
       </p>
     </div>
