@@ -1,7 +1,5 @@
-# TODO: Connect Gemini URL from Backend to Frontend
+# TODO: Place FileUploader below video calling section after joining
 
-## Steps to Complete
-- [ ] Create backend/routes/geminiRoute.js: Add a POST endpoint that forwards requests to the Gemini API using process.env.GEMINI_URL.
-- [ ] Update backend/index.js: Register the new geminiRoute.
-- [ ] Update frontend/src/pages/GeminiUi.jsx: Change URL to the backend proxy endpoint `${import.meta.env.VITE_API_BASE_URL}/gemini`.
-- [ ] Test the Gemini API call after changes.
+- [ ] Modify the left div in VideoCalling.jsx to use flex-col layout
+- [ ] Adjust the video calling div height to h-[50vh]
+- [ ] Add FileUploader component below the video div in a container with h-[35vh] and overflow-auto

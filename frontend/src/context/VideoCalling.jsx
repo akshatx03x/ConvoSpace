@@ -6,6 +6,7 @@
 import QuotesTicker from '../components/Extras/Quotes.jsx'
 import About from '../components/Extras/About.jsx'
 import Footer from '../components/Extras/Footer.jsx'
+import FileUploader from '../pages/FileUploader.jsx'
 
     const THEME_MAIN_BG = '#c3a6a0'
     const THEME_LIGHT_CARD_BG = '#F0EBEA'
@@ -254,10 +255,11 @@ if (!isJoined) {
               </div>
             </div>
           </div>
-
           <div className="w-[30%] h-full border-l border-gray-300 overflow-hidden">
             <GeminiChatUI />
           </div>
+          
+            
         </div>
       )
     }
