@@ -133,6 +133,8 @@ import Chats from '../pages/Chats.jsx'
           }
           peer.createPeer(from, (remoteStream) => {
             setRemoteUsers(prev => prev.map(user => user.id === from ? { ...user, stream: remoteStream } : user))
+          }, () => {
+            handleNegoNeeded(from)
           })
           peer.addLocalStreamToPeer(from, stream)
           const answer = await peer.getAnswer(from, offer)
@@ -157,6 +159,8 @@ import Chats from '../pages/Chats.jsx'
             if (!peer.peers.has(user.id)) {
               peer.createPeer(user.id, (remoteStream) => {
                 setRemoteUsers(prev => prev.map(u => u.id === user.id ? { ...u, stream: remoteStream } : u))
+              }, () => {
+                handleNegoNeeded(user.id)
               })
               peer.addLocalStreamToPeer(user.id, stream)
               const offer = await peer.getOffer(user.id)

@@ -3,7 +3,7 @@ class PeerService {
         this.peers = new Map(); // Map of socketId to { pc, onStream }
     }
 
-    createPeer(socketId, onStream) {
+    createPeer(socketId, onStream, onNegotiationNeeded) {
         const pc = new RTCPeerConnection({
             iceServers: [
                 {
@@ -26,7 +26,9 @@ class PeerService {
             }
         };
 
-        this.peers.set(socketId, { pc, onStream });
+        pc.onnegotiationneeded = onNegotiationNeeded;
+
+        this.peers.set(socketId, { pc, onStream, onNegotiationNeeded });
         return pc;
     }
 
