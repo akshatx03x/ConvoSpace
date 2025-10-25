@@ -1,9 +1,9 @@
-# TODO: Implement File Deletion on Last User Leave Room
+# TODO: Add Create Room and Join Room Options to Home Screen
 
-## Tasks
-- [x] Modify `deleteAllFiles` controller to accept room query parameter and delete only files for that room
-- [x] Update `fileRoute.js` to pass room in delete-all route
-- [x] Add room tracking in backend `index.js` socket events (join and disconnect)
-- [x] In socket disconnect, check if room is empty and call deleteAllFiles for that room
-- [x] Remove or adjust deleteAllFiles call in frontend `VideoCalling.jsx` handleLeaveMeeting (since it's now automatic on backend)
-- [x] Test the functionality
+## Steps to Complete:
+- [x] Add new state variables: joinRoom, generatedRoom, lastGenerated to VideoCalling component.
+- [x] Implement generateRoomCode function to create unique 5-digit hex code.
+- [x] Update UI in !isJoined block: Add Create Room section with generate button, display code, and start meeting button.
+- [x] Update UI in !isJoined block: Add Join Room section with input field and join button.
+- [x] Adjust event handlers: Create handleCreateRoom and modify handleSubmit for join.
+- [x] Test the functionality: Generate code, start meeting, join with code.

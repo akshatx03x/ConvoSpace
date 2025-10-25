@@ -62,6 +62,7 @@ app.set('io', io);
 const emailtoSocketIdMap = new Map();
 const socketIdToEmailMap = new Map();
 const roomUsers = new Map(); // Track users per room
+const activeRooms = new Set(); // Track active rooms/meetings
 
 io.on("connection", async (socket) => {
     const token = socket.handshake.auth.token;
@@ -85,7 +86,17 @@ io.on("connection", async (socket) => {
     socket.on("room:join", (data) => {
         const { room } = data;
         const email = socket.user.email;
-        io.to(room).emit("user:join", { email, id: socket.id });
+
+        // Check if this is a new room or existing active room
+        if (!roomUsers.has(room)) {
+            // New room being created
+            activeRooms.add(room);
+        } else if (!activeRooms.has(room)) {
+            // Room exists but not active
+            io.to(socket.id).emit("room:join:error", { message: "No active meeting found for this room code. Please create a new room or wait for the meeting to start." });
+            return;
+        }
+
         socket.join(room);
         emailtoSocketIdMap.set(email, socket.id);
         socketIdToEmailMap.set(socket.id, email);
@@ -95,6 +106,18 @@ io.on("connection", async (socket) => {
             roomUsers.set(room, new Set());
         }
         roomUsers.get(room).add(socket.id);
+
+        // Notify all existing users in room about the new user
+        socket.to(room).emit("user:join", { email, id: socket.id });
+
+        // Notify the new user about all existing users in the room
+        const existingUsers = roomUsers.get(room);
+        for (const userId of existingUsers) {
+            if (userId !== socket.id) {
+                const userEmail = socketIdToEmailMap.get(userId);
+                io.to(socket.id).emit("user:join", { email: userEmail, id: userId });
+            }
+        }
 
         io.to(socket.id).emit("room:join", { email, room });
     });
@@ -106,9 +129,12 @@ io.on("connection", async (socket) => {
         for (const [room, users] of roomUsers.entries()) {
             if (users.has(socket.id)) {
                 users.delete(socket.id);
-                // If room is empty, delete all files for that room
+                // Notify other users in the room that this user left
+                socket.to(room).emit('user:left', { id: socket.id });
+                // If room is empty, delete all files for that room and remove from active rooms
                 if (users.size === 0) {
                     roomUsers.delete(room);
+                    activeRooms.delete(room); // Remove from active rooms
                     try {
                         // Create a mock request object for the controller
                         const mockReq = {
@@ -153,12 +179,23 @@ io.on("connection", async (socket) => {
     });
     socket.on('peer:nego:needed', ({ to, offer }) => {
         io.to(to).emit('peer:nego:needed', { from: socket.id, offer });
-    }           
-    );
+    });
     socket.on('peer:nego:done', ({ to, answer }) => {
         io.to(to).emit('peer:nego:final', { from: socket.id, answer });
-    }
-    );
+    });
+    // New events for multi-user calling
+    socket.on('room:call', ({ room, offer }) => {
+        socket.to(room).emit('room:incoming:call', { from: socket.id, offer });
+    });
+    socket.on('room:call:accepted', ({ room, answer }) => {
+        socket.to(room).emit('room:call:accepted', { from: socket.id, answer });
+    });
+    socket.on('room:peer:nego:needed', ({ room, offer }) => {
+        socket.to(room).emit('room:peer:nego:needed', { from: socket.id, offer });
+    });
+    socket.on('room:peer:nego:done', ({ room, answer }) => {
+        socket.to(room).emit('room:peer:nego:final', { from: socket.id, answer });
+    });
 
     socket.on('send:message', ({ room, message }) => {
         const name = socket.user.name;

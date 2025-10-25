@@ -27,7 +27,7 @@ export const uploadFile = async (request, response) => {
         });
 
         return response.status(200).json({
-            path: `https://localhost:5000/files/${file._id}`,
+            path: `${import.meta.env.VITE_API_BASE_URL}/files/${file._id}`,
             message: "File uploaded successfully",
             filename: file.name
         });
