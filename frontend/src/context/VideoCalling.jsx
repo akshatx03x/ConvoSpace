@@ -9,7 +9,7 @@ import Footer from '../components/Extras/Footer.jsx'
 import FileUploader from '../pages/FileUploader.jsx'
 
 import Notepad from '../pages/Notepad.jsx'
-import Chats from '../pages/chats.jsx'
+import Chats from '../pages/Chats.jsx'
 
     const THEME_MAIN_BG = '#c3a6a0'
     const THEME_LIGHT_CARD_BG = '#F0EBEA'
