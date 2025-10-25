@@ -2,9 +2,13 @@ import axios from 'axios';
 
 export const downloadFile = async (fileId, fileName) => {
     try {
+        const token = localStorage.getItem('token');
         const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/files/${fileId}`, {
             withCredentials: true,
-            responseType: 'blob' // Important for downloading files
+            responseType: 'blob', // Important for downloading files
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         // Create a blob URL and trigger download

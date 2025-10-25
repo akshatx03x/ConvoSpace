@@ -1,12 +1,7 @@
-# TODO: Fix CORS Issue for Vercel Frontend
-
-## Steps to Complete:
-- [x] Update CORS configuration in backend/index.js to allow both Vercel and localhost origins
-- [x] Update Socket.IO CORS configuration to match
-- [ ] Redeploy the backend on Render to apply changes
-- [ ] Test the login functionality from the Vercel frontend
-
-## Notes:
-- Current CORS allows only 'http://localhost:5173' by default
-- Need to allow 'https://convospace-mu.vercel.app' for production
-- Using array of origins for flexibility in dev and prod environments
+- [x] Add Authorization header with Bearer token to frontend services for authenticated requests
+  - [x] frontend/src/services/fileupload.js
+  - [x] frontend/src/services/getFiles.js
+  - [x] frontend/src/services/downloadFile.js
+  - [x] frontend/src/services/deleteFile.js
+  - [x] frontend/src/services/deleteAllFiles.js
+- [ ] Test the file upload functionality after changes
