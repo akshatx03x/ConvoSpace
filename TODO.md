@@ -8,4 +8,6 @@
   - [x] Update CORS configuration in backend/index.js to use function-based origin check for Express (allowing specific origins with credentials)
   - [x] Keep Socket.IO CORS as "*" for broader compatibility
   - [x] Add CORS headers in vercel.json for production deployment
+- [x] Fix video and audio not being cross-shared between connected users in the call
+  - [x] Move addLocalStreamToPeer before getOffer/getAnswer in handleIncomingCall and handleCallUser
 - [ ] Test the file upload functionality after changes

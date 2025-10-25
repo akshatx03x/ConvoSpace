@@ -134,9 +134,9 @@ import Chats from '../pages/Chats.jsx'
           peer.createPeer(from, (remoteStream) => {
             setRemoteUsers(prev => prev.map(user => user.id === from ? { ...user, stream: remoteStream } : user))
           })
+          peer.addLocalStreamToPeer(from, stream)
           const answer = await peer.getAnswer(from, offer)
           socket.emit('room:call:accepted', { room, answer })
-          peer.addLocalStreamToPeer(from, stream)
         } catch {
           setError("Camera/microphone not available.")
         }
@@ -158,12 +158,12 @@ import Chats from '../pages/Chats.jsx'
               peer.createPeer(user.id, (remoteStream) => {
                 setRemoteUsers(prev => prev.map(u => u.id === user.id ? { ...u, stream: remoteStream } : u))
               })
+              peer.addLocalStreamToPeer(user.id, stream)
               const offer = await peer.getOffer(user.id)
               socket.emit('room:call', { room, offer })
             }
           }
           setIsCallActive(true)
-          peer.addLocalStream(stream)
         } catch {
           setError("Camera/microphone not available.")
         }
