@@ -4,4 +4,8 @@
   - [x] frontend/src/services/downloadFile.js
   - [x] frontend/src/services/deleteFile.js
   - [x] frontend/src/services/deleteAllFiles.js
+- [x] Fix CORS issues for Socket.IO connection in both localhost and production
+  - [x] Update CORS configuration in backend/index.js to use function-based origin check for Express (allowing specific origins with credentials)
+  - [x] Keep Socket.IO CORS as "*" for broader compatibility
+  - [x] Add CORS headers in vercel.json for production deployment
 - [ ] Test the file upload functionality after changes

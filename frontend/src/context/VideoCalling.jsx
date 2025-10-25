@@ -152,13 +152,15 @@ import Chats from '../pages/Chats.jsx'
             setMediaStarted(true)
             if (localVideoRef.current) localVideoRef.current.srcObject = stream
           }
-          // Create peers for all remote users and send offers
+          // Create peers for remote users that don't have peers yet and send offers
           for (const user of remoteUsers) {
-            peer.createPeer(user.id, (remoteStream) => {
-              setRemoteUsers(prev => prev.map(u => u.id === user.id ? { ...u, stream: remoteStream } : u))
-            })
-            const offer = await peer.getOffer(user.id)
-            socket.emit('room:call', { room, offer })
+            if (!peer.peers.has(user.id)) {
+              peer.createPeer(user.id, (remoteStream) => {
+                setRemoteUsers(prev => prev.map(u => u.id === user.id ? { ...u, stream: remoteStream } : u))
+              })
+              const offer = await peer.getOffer(user.id)
+              socket.emit('room:call', { room, offer })
+            }
           }
           setIsCallActive(true)
           peer.addLocalStream(stream)
@@ -167,12 +169,12 @@ import Chats from '../pages/Chats.jsx'
         }
       }, [remoteUsers, socket, room])
 
-      // Automatically start call when remote users are present and call is not active
+      // Automatically start call when remote users are present
       useEffect(() => {
-        if (isJoined && remoteUsers.length > 0 && !isCallActive) {
+        if (isJoined && remoteUsers.length > 0) {
           handleCallUser()
         }
-      }, [isJoined, remoteUsers.length, isCallActive, handleCallUser])
+      }, [isJoined, remoteUsers.length, handleCallUser])
 
       const handleCallAccepted = useCallback(async ({ from, answer }) => {
         await peer.setRemoteDescription(from, answer)
