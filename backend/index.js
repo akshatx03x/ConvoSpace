@@ -87,6 +87,18 @@ io.on("connection", async (socket) => {
         const { room } = data;
         const email = socket.user.email;
 
+        // Check if user is already in this room
+        if (roomUsers.has(room)) {
+            const usersInRoom = roomUsers.get(room);
+            for (const userId of usersInRoom) {
+                const userEmail = socketIdToEmailMap.get(userId);
+                if (userEmail === email) {
+                    io.to(socket.id).emit("room:join:error", { message: "You are already in this room." });
+                    return;
+                }
+            }
+        }
+
         // Check if this is a new room or existing active room
         if (!roomUsers.has(room)) {
             // New room being created

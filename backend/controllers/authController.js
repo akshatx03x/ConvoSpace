@@ -1,6 +1,7 @@
 import User from "../models/UserModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { protect } from "../middlewares/auth.js";
 
 // Generate JWT and set it as a cookie
 export const generateToken = (userId, res) => {
@@ -115,6 +116,21 @@ export const login = async (req, res) => {
         });
     } catch (error) {
         console.error("Login error:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+// Validate token
+export const validateToken = async (req, res) => {
+    try {
+        // The auth middleware will verify the token and set req.user
+        // If we reach here, the token is valid
+        res.status(200).json({
+            message: "Token is valid",
+            user: req.user
+        });
+    } catch (error) {
+        console.error("Token validation error:", error);
         res.status(500).json({ message: "Server Error" });
     }
 };

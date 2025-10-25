@@ -102,9 +102,6 @@ return (
 				</svg>
 				<span>Live Chat</span>
 			</div>
-			<div className="text-xs px-2 py-1 rounded-full bg-green-500/80 font-semibold">
-				2 Online
-			</div>
 		</div>
 
 		{/* ✅ Chat Messages Scroll Area */}

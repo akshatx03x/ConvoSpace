@@ -238,22 +238,27 @@ import Chats from '../pages/chats.jsx'
       }, [])
 
       const handleLeaveMeeting = useCallback(async () => {
-        if (myStreamRef.current) myStreamRef.current.getTracks().forEach(track => track.stop())
-        peer.closeAllPeers()
-        socket.emit('room:leave', { room })
+        console.log('End call clicked')
         setIsJoined(false)
-        setMyStream(null)
-        myStreamRef.current = null
-        // Removed setRemoteStream(null) as remoteStream state is no longer used
-        setRoom("")
-        setError(null)
-        setRemoteUsers([])
-        setIsCallActive(false)
-        setIsNewJoiner(false) // Reset new joiner flag
-        // Files are now automatically deleted when the last user leaves the room
-        setRefreshKey(prev => prev + 1)
-        // Clear notes for the room from localStorage
-        localStorage.removeItem(`notes_${room}`)
+        try {
+          if (myStreamRef.current) myStreamRef.current.getTracks().forEach(track => track.stop())
+          peer.closeAllPeers()
+          socket.emit('room:leave', { room })
+          setMyStream(null)
+          myStreamRef.current = null
+          // Removed setRemoteStream(null) as remoteStream state is no longer used
+          setRoom("")
+          setError(null)
+          setRemoteUsers([])
+          setIsCallActive(false)
+          setIsNewJoiner(false) // Reset new joiner flag
+          // Files are now automatically deleted when the last user leaves the room
+          setRefreshKey(prev => prev + 1)
+          // Clear notes for the room from localStorage
+          localStorage.removeItem(`notes_${room}`)
+        } catch (error) {
+          console.error('Error leaving meeting:', error)
+        }
       }, [socket, room])
 
 if (!isJoined) {
@@ -351,7 +356,7 @@ if (!isJoined) {
         >
           
           {/* Section 1: Video Calling and File Uploader (Visible on Load) */}
-          <div className="flex w-full p-4 gap-4 flex-shrink-0" 
+          <div className="flex w-30/31 p-4 gap-4 flex-shrink-0" 
             style={{ 
                 height: '85vh', // Sets the initial visible height
                 maxHeight: '85vh', 

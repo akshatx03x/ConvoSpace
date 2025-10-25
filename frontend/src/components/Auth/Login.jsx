@@ -103,6 +103,13 @@ function Login() {
               <FaFacebookF className="w-5 h-5 text-gray-600" />
             </button>
           </div>
+
+          <p className="text-sm text-center text-gray-600 mt-6">
+            Don't have an account?{" "}
+            <Link to="/register" className="text-[#A06C78] hover:underline">
+              Register
+            </Link>
+          </p>
         </div>
         <div className="hidden lg:block lg:w-1/2 p-10 relative rounded-r-3xl" 
              style={{ 
