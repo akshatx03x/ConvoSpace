@@ -102,7 +102,13 @@ io.on("connection", async (socket) => {
     const { room } = data;
     const email = socket.user.email;
 
-    // Check if already in room (by email)
+    // Check if socket is already in the room
+    if (roomUsers.has(room) && roomUsers.get(room).has(socket.id)) {
+      io.to(socket.id).emit("room:join", { email, room });
+      return;
+    }
+
+    // Check if another socket with same email is in the room
     if (roomUsers.has(room)) {
       const usersInRoom = roomUsers.get(room);
       for (const userId of usersInRoom) {
@@ -248,5 +254,19 @@ io.on("connection", async (socket) => {
   socket.on('send:message', ({ room, message }) => {
     const name = socket.user.name;
     socket.to(room).emit('receive:message', { name, message });
+  });
+
+  // Handle room leave
+  socket.on('room:leave', ({ room }) => {
+    console.log(`User ${socket.user.email} (${socket.id}) leaving room ${room}`);
+    if (roomUsers.has(room)) {
+      roomUsers.get(room).delete(socket.id);
+      socket.to(room).emit('user:left', { id: socket.id });
+      if (roomUsers.get(room).size === 0) {
+        roomUsers.delete(room);
+        activeRooms.delete(room);
+      }
+    }
+    socket.leave(room);
   });
 });
