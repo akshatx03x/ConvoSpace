@@ -1,4 +1,4 @@
-// VideoCalling.jsx (ENHANCED FIX with better stream handling)
+// VideoCalling.jsx (COMPLETE FIXED VERSION)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocket } from './SocketProvider';
 import peer from '../services/Peer.js';
@@ -15,10 +15,8 @@ const THEME_MAIN_BG = '#c3a6a0';
 const THEME_LIGHT_CARD_BG = '#F0EBEA';
 const THEME_ACCENT_COLOR = '#A06C78';
 const THEME_TEXT_COLOR = '#333333';
-
 const GRADIENT_BG_DASHBOARD = 'linear-gradient(to right bottom, #E0C0C0, #EAE0E0, #a06c78)';
 const GRADIENT_BG_JOIN = 'linear-gradient(to top right, #E0C0C0, #D5B0B0, #a06c78)';
-
 const NAVBAR_HEIGHT = '80px';
 
 const VideoCalling = () => {
@@ -40,7 +38,6 @@ const VideoCalling = () => {
   const socket = useSocket();
   const myStreamRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
-  const pendingIceCandidates = useRef(new Map());
 
   const generateRoomCode = () => {
     let code;
@@ -80,7 +77,7 @@ const VideoCalling = () => {
     setRoom(room);
     setIsJoined(true);
     setJoinError("");
-    console.log('✅ Joined room (client):', room);
+    console.log('✅ Joined room:', room);
   }, []);
 
   const handleJoinRoomError = useCallback((data) => {
@@ -97,7 +94,7 @@ const VideoCalling = () => {
     };
   }, [socket, handleJoinRoom, handleJoinRoomError]);
 
-  // Initialize local media stream when user joins
+  // Get local media stream when joined
   useEffect(() => {
     if (isJoined && !myStream && !mediaStarted) {
       console.log('🎥 Requesting local media...');
@@ -106,11 +103,7 @@ const VideoCalling = () => {
         audio: true 
       })
         .then((stream) => {
-          console.log('✅ Local stream obtained:', {
-            id: stream.id,
-            audioTracks: stream.getAudioTracks().length,
-            videoTracks: stream.getVideoTracks().length
-          });
+          console.log('✅ Local stream obtained');
           setMyStream(stream);
           myStreamRef.current = stream;
           setMediaStarted(true);
@@ -125,90 +118,65 @@ const VideoCalling = () => {
     }
   }, [isJoined, myStream, mediaStarted]);
 
+  // Handle new user joining
   const handleUserJoined = useCallback(async ({ email, id }) => {
     console.log('👤 User joined:', email, id);
     
-    // Add user to remote users list
     setRemoteUsers(prev => {
       if (prev.some(u => u.id === id)) {
-        console.log('User already in list:', id);
+        console.log('User already exists:', id);
         return prev;
       }
-      console.log('Adding new user to list:', id);
       return [...prev, { id, email, stream: null }];
     });
 
-    // If I have a stream, initiate call to the new user
-    if (myStreamRef.current) {
-      console.log('📞 Initiating call to:', id);
-      try {
-        // Create peer connection for this user
-        const pc = peer.createPeer(
-          id,
-          (remoteStream) => {
-            console.log('✅ Received remote stream from', id, {
-              id: remoteStream.id,
-              active: remoteStream.active,
-              audioTracks: remoteStream.getAudioTracks().length,
-              videoTracks: remoteStream.getVideoTracks().length
-            });
-            
-            // Update state with the stream
-            setRemoteUsers(prev => 
-              prev.map(u => {
-                if (u.id === id) {
-                  console.log('Updating user stream in state for:', id);
-                  return { ...u, stream: remoteStream };
-                }
-                return u;
-              })
-            );
+    if (!myStreamRef.current) {
+      console.warn('⚠️ Local stream not ready yet');
+      return;
+    }
 
-            // Also directly set the video element srcObject
-            const videoEl = remoteVideoRefs.current.get(id);
-            if (videoEl && videoEl.srcObject !== remoteStream) {
-              console.log('Setting video element srcObject for:', id);
-              videoEl.srcObject = remoteStream;
-              videoEl.play().catch(e => console.error('Error playing video:', e));
-            }
-          },
-          async () => {
-            console.log('🔄 Negotiation needed for:', id);
-            try {
-              const offer = await peer.getOffer(id);
-              socket.emit('room:peer:nego:needed', { room, offer });
-            } catch (err) {
-              console.error('Negotiation error:', err);
-            }
-          },
-          (candidate) => {
-            console.log('📤 Sending ICE candidate to:', id);
-            socket.emit('room:ice:candidate', { room, candidate, to: id });
+    console.log('📞 Creating peer for:', id);
+    
+    try {
+      // Create peer connection
+      peer.createPeer(
+        id,
+        (remoteStream) => {
+          console.log('✅ Remote stream received from:', id);
+          setRemoteUsers(prev => 
+            prev.map(u => u.id === id ? { ...u, stream: remoteStream } : u)
+          );
+          
+          // Set video element directly
+          const videoEl = remoteVideoRefs.current.get(id);
+          if (videoEl) {
+            videoEl.srcObject = remoteStream;
+            videoEl.play().catch(e => console.error('Play error:', e));
           }
-        );
-
-        console.log('Adding local stream tracks to peer:', id);
-        peer.addLocalStreamToPeer(id, myStreamRef.current);
-
-        // Process any pending ICE candidates for this peer
-        const pending = pendingIceCandidates.current.get(id);
-        if (pending && pending.length > 0) {
-          console.log(`Processing ${pending.length} pending ICE candidates for`, id);
-          for (const candidate of pending) {
-            await peer.addIceCandidate(id, candidate);
+        },
+        async () => {
+          console.log('🔄 Renegotiation for:', id);
+          try {
+            const offer = await peer.getOffer(id);
+            socket.emit('room:peer:nego:needed', { room, offer });
+          } catch (err) {
+            console.error('Renegotiation error:', err);
           }
-          pendingIceCandidates.current.delete(id);
+        },
+        (candidate) => {
+          socket.emit('room:ice:candidate', { room, candidate, to: id });
         }
+      );
 
-        // Create and send offer
-        const offer = await peer.getOffer(id);
-        socket.emit('room:call', { room, offer });
-        console.log('📤 Sent offer to new user:', id);
-      } catch (err) {
-        console.error('❌ Error initiating call to new user:', err);
-      }
-    } else {
-      console.warn('⚠️ No local stream available yet');
+      // Add local stream
+      peer.addLocalStreamToPeer(id, myStreamRef.current);
+
+      // Send offer
+      const offer = await peer.getOffer(id);
+      socket.emit('room:call', { room, offer });
+      console.log('📤 Offer sent to:', id);
+    } catch (err) {
+      console.error('❌ Error creating peer:', err);
     }
   }, [socket, room]);
 
@@ -216,18 +184,18 @@ const VideoCalling = () => {
     const { id } = data;
     console.log('👋 User left:', id);
     peer.removePeer(id);
-    pendingIceCandidates.current.delete(id);
     remoteVideoRefs.current.delete(id);
     setRemoteUsers(prev => prev.filter(user => user.id !== id));
   }, []);
 
+  // Handle incoming call
   const handleIncomingCall = useCallback(async ({ from, offer }) => {
+    console.log('📞 Incoming call from:', from);
+    
     try {
-      console.log('📞 Incoming call from', from);
-      
       let stream = myStreamRef.current;
       if (!stream) {
-        console.log('Getting local media for incoming call...');
+        console.log('Getting media for incoming call...');
         stream = await navigator.mediaDevices.getUserMedia({ 
           video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
           audio: true 
@@ -240,120 +208,82 @@ const VideoCalling = () => {
         }
       }
 
-      // Create peer connection
+      // Create peer
       peer.createPeer(
         from,
         (remoteStream) => {
-          console.log('✅ Received remote stream from', from, {
-            id: remoteStream.id,
-            active: remoteStream.active,
-            audioTracks: remoteStream.getAudioTracks().length,
-            videoTracks: remoteStream.getVideoTracks().length
-          });
-          
+          console.log('✅ Remote stream received from:', from);
           setRemoteUsers(prev => 
-            prev.map(u => {
-              if (u.id === from) {
-                console.log('Updating user stream in state for:', from);
-                return { ...u, stream: remoteStream };
-              }
-              return u;
-            })
+            prev.map(u => u.id === from ? { ...u, stream: remoteStream } : u)
           );
-
-          // Also directly set the video element srcObject
+          
           const videoEl = remoteVideoRefs.current.get(from);
-          if (videoEl && videoEl.srcObject !== remoteStream) {
-            console.log('Setting video element srcObject for:', from);
+          if (videoEl) {
             videoEl.srcObject = remoteStream;
-            videoEl.play().catch(e => console.error('Error playing video:', e));
+            videoEl.play().catch(e => console.error('Play error:', e));
           }
         },
         async () => {
-          console.log('🔄 Negotiation needed for:', from);
+          console.log('🔄 Renegotiation for:', from);
           try {
             const offer = await peer.getOffer(from);
             socket.emit('room:peer:nego:needed', { room, offer });
           } catch (err) {
-            console.error('Negotiation error:', err);
+            console.error('Renegotiation error:', err);
           }
         },
         (candidate) => {
-          console.log('📤 Sending ICE candidate to:', from);
           socket.emit('room:ice:candidate', { room, candidate, to: from });
         }
       );
 
-      console.log('Adding local stream to peer:', from);
+      // Add local stream
       peer.addLocalStreamToPeer(from, stream);
 
-      // Process any pending ICE candidates
-      const pending = pendingIceCandidates.current.get(from);
-      if (pending && pending.length > 0) {
-        console.log(`Processing ${pending.length} pending ICE candidates for`, from);
-        for (const candidate of pending) {
-          await peer.addIceCandidate(from, candidate);
-        }
-        pendingIceCandidates.current.delete(from);
-      }
-
-      // Set remote offer and create answer
+      // Create and send answer
       const answer = await peer.getAnswer(from, offer);
       socket.emit('room:call:accepted', { room, answer });
-      console.log('📤 Sent answer to', from);
+      console.log('📤 Answer sent to:', from);
     } catch (err) {
-      console.error('❌ handleIncomingCall error:', err);
-      setError("Failed to establish connection.");
+      console.error('❌ Error handling call:', err);
     }
   }, [socket, room]);
 
   const handleCallAccepted = useCallback(async ({ from, answer }) => {
+    console.log('✅ Call accepted by:', from);
     try {
-      console.log('✅ Call accepted by', from);
       await peer.setRemoteDescription(from, answer);
     } catch (err) {
-      console.error('❌ handleCallAccepted error:', err);
+      console.error('❌ Error setting answer:', err);
     }
   }, []);
 
   const handleNegoNeedIncoming = useCallback(async ({ from, offer }) => {
+    console.log('🔄 Renegotiation from:', from);
     try {
-      console.log('🔄 Negotiation incoming from', from);
       const answer = await peer.getAnswer(from, offer);
       socket.emit('room:peer:nego:done', { room, answer });
-      console.log('📤 Sent negotiation answer to', from);
     } catch (err) {
-      console.error('❌ handleNegoNeedIncoming error:', err);
+      console.error('❌ Renegotiation error:', err);
     }
   }, [socket, room]);
 
   const handleNegoNeedFinal = useCallback(async ({ from, answer }) => {
+    console.log('✅ Final renegotiation from:', from);
     try {
-      console.log('✅ Final negotiation answer from', from);
       await peer.setRemoteDescription(from, answer);
     } catch (err) {
-      console.error('❌ handleNegoNeedFinal error:', err);
+      console.error('❌ Final renegotiation error:', err);
     }
   }, []);
 
   const handleIceCandidate = useCallback(async ({ candidate, from }) => {
+    if (!candidate) return;
+    console.log('📥 ICE from:', from, candidate.type);
     try {
-      if (!candidate) return;
-      
-      console.log('📥 Received ICE candidate from', from, candidate.type);
-      
-      // Check if peer connection exists
-      if (peer.peers.has(from)) {
-        await peer.addIceCandidate(from, candidate);
-      } else {
-        console.log('⏳ Storing ICE candidate for later:', from);
-        if (!pendingIceCandidates.current.has(from)) {
-          pendingIceCandidates.current.set(from, []);
-        }
-        pendingIceCandidates.current.get(from).push(candidate);
-      }
+      await peer.addIceCandidate(from, candidate);
     } catch (err) {
-      console.error('❌ handleIceCandidate error:', err);
+      console.warn('ICE error:', err.message);
     }
   }, []);
 
@@ -377,41 +307,35 @@ const VideoCalling = () => {
     };
   }, [socket, handleUserJoined, handleUserLeft, handleIncomingCall, handleCallAccepted, handleNegoNeedIncoming, handleNegoNeedFinal, handleIceCandidate]);
 
-  // Debug: Monitor peer states
+  // Debug peer states
   useEffect(() => {
     if (!isJoined) return;
-    
     const interval = setInterval(() => {
       const states = peer.getAllPeerStates();
       if (Object.keys(states).length > 0) {
         console.log('🔍 Peer states:', states);
       }
     }, 5000);
-
     return () => clearInterval(interval);
   }, [isJoined]);
 
   const toggleMic = useCallback(() => {
     if (myStreamRef.current) {
-      const audioTracks = myStreamRef.current.getAudioTracks();
-      audioTracks.forEach(track => {
+      myStreamRef.current.getAudioTracks().forEach(track => {
         track.enabled = !track.enabled;
       });
       setIsMicOn(prev => !prev);
-      console.log('🎤 Microphone', !isMicOn ? 'ON' : 'OFF');
     }
-  }, [isMicOn]);
+  }, []);
 
   const toggleVideo = useCallback(() => {
     if (myStreamRef.current) {
-      const videoTracks = myStreamRef.current.getVideoTracks();
-      videoTracks.forEach(track => {
+      myStreamRef.current.getVideoTracks().forEach(track => {
         track.enabled = !track.enabled;
       });
       setIsVideoOn(prev => !prev);
-      console.log('📹 Video', !isVideoOn ? 'ON' : 'OFF');
     }
-  }, [isVideoOn]);
+  }, []);
 
   const handleLeaveMeeting = useCallback(async () => {
     console.log('👋 Leaving meeting');
@@ -421,7 +345,6 @@ const VideoCalling = () => {
         myStreamRef.current.getTracks().forEach(track => track.stop());
       }
       peer.closeAllPeers();
-      pendingIceCandidates.current.clear();
       remoteVideoRefs.current.clear();
       socket.emit('room:leave', { room });
       setMyStream(null);
@@ -433,45 +356,26 @@ const VideoCalling = () => {
       setRefreshKey(prev => prev + 1);
       localStorage.removeItem(`notes_${room}`);
     } catch (error) {
-      console.error('❌ Error leaving meeting:', error);
+      console.error('❌ Error leaving:', error);
     }
   }, [socket, room]);
 
   if (!isJoined) {
     return (
-      <div
-        className="w-full min-h-screen justify-start items-center p-5 rounded-2xl"
-        style={{
-          backgroundColor: '#d9bdb8',
-          height: `calc(100vh - ${NAVBAR_HEIGHT})`,
-          marginTop: NAVBAR_HEIGHT
-        }}
-      >
+      <div className="w-full min-h-screen justify-start items-center p-5 rounded-2xl" style={{ backgroundColor: '#d9bdb8', height: `calc(100vh - ${NAVBAR_HEIGHT})`, marginTop: NAVBAR_HEIGHT }}>
         <div className='flex justify-center font-medium border-2 border-gray-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer w-2/3 mx-8 p-2 my-5 rounded-b-2xl' style={{backgroundColor:THEME_LIGHT_CARD_BG}}>"Collaborate seamlessly. Innovate effortlessly. Your work, connected." </div>
-        <div className="w-2/3 h-[550px] rounded-2xl overflow-hidden flex  m-8 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer" style={{ backgroundColor: THEME_LIGHT_CARD_BG }}>
-          <div className="w-3/4 p-12 flex flex-col justify-center ">
-            <h1 className="text-5xl font-extrabold mb-2 " style={{ color: THEME_TEXT_COLOR }}>Hello Again!</h1>
+        <div className="w-2/3 h-[550px] rounded-2xl overflow-hidden flex m-8 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer" style={{ backgroundColor: THEME_LIGHT_CARD_BG }}>
+          <div className="w-3/4 p-12 flex flex-col justify-center">
+            <h1 className="text-5xl font-extrabold mb-2" style={{ color: THEME_TEXT_COLOR }}>Hello Again!</h1>
             <p className="text-md text-gray-500 mb-8">Let's get started with your 30 days trial</p>
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4" style={{ color: THEME_TEXT_COLOR }}>Create Room-</h2>
-              <button
-                onClick={generateRoomCode}
-                className="text-white rounded-xl p-4 font-extrabold shadow-xl hover:scale-[1.01] mb-4"
-                style={{ backgroundColor: THEME_ACCENT_COLOR }}
-              >
-                Generate Room Code
-              </button>
+              <button onClick={generateRoomCode} className="text-white rounded-xl p-4 font-extrabold shadow-xl hover:scale-[1.01] mb-4" style={{ backgroundColor: THEME_ACCENT_COLOR }}>Generate Room Code</button>
               {generatedRoom && (
                 <div className="mb-4">
                   <p className="text-lg font-medium" style={{ color: THEME_TEXT_COLOR }}>Room Code: <span className="font-bold">{generatedRoom}</span></p>
                   <form onSubmit={handleCreateRoom} className="flex flex-col space-y-4">
-                    <button
-                      className="text-white rounded-xl p-4 font-extrabold shadow-xl hover:scale-[1.01]"
-                      style={{ backgroundColor: THEME_ACCENT_COLOR }}
-                      type="submit"
-                    >
-                      Start Meeting
-                    </button>
+                    <button className="text-white rounded-xl p-4 font-extrabold shadow-xl hover:scale-[1.01]" style={{ backgroundColor: THEME_ACCENT_COLOR }} type="submit">Start Meeting</button>
                   </form>
                 </div>
               )}
@@ -479,24 +383,9 @@ const VideoCalling = () => {
             <div>
               <h2 className="text-2xl font-bold mb-4" style={{ color: THEME_TEXT_COLOR }}>Join Room-</h2>
               <form onSubmit={handleJoinRoomSubmit} className="flex flex-col space-y-4">
-                <input
-                  className="rounded-xl p-4 font-medium border-2 focus:ring-2 shadow-inner"
-                  style={{ borderColor: THEME_ACCENT_COLOR + '60' }}
-                  placeholder="Enter Shared Room Code"
-                  value={joinRoom}
-                  onChange={(e) => setJoinRoom(e.target.value)}
-                />
-                <button
-                  className="text-white rounded-xl p-4 font-extrabold shadow-xl hover:scale-[1.01]"
-                  style={{ backgroundColor: THEME_ACCENT_COLOR }}
-                  type="submit"
-                  disabled={!joinRoom}
-                >
-                  Join Meeting
-                </button>
-                {joinError && (
-                  <p className="text-red-500 text-sm font-medium">{joinError}</p>
-                )}
+                <input className="rounded-xl p-4 font-medium border-2 focus:ring-2 shadow-inner" style={{ borderColor: THEME_ACCENT_COLOR + '60' }} placeholder="Enter Shared Room Code" value={joinRoom} onChange={(e) => setJoinRoom(e.target.value)} />
+                <button className="text-white rounded-xl p-4 font-extrabold shadow-xl hover:scale-[1.01]" style={{ backgroundColor: THEME_ACCENT_COLOR }} type="submit" disabled={!joinRoom}>Join Meeting</button>
+                {joinError && <p className="text-red-500 text-sm font-medium">{joinError}</p>}
               </form>
             </div>
           </div>
@@ -515,28 +404,15 @@ const VideoCalling = () => {
 
   return (
     <div>
-      <div
-        className="flex flex-col w-full p-0 m-0 overflow-y-auto"
-        style={{
-          backgroundColor: THEME_MAIN_BG,
-          minHeight: `calc(100vh - ${NAVBAR_HEIGHT})`,
-          marginTop: NAVBAR_HEIGHT
-        }}
-      >
-        <div className="flex w-30/31 p-4 gap-4 flex-shrink-0"
-          style={{
-            height: '85vh',
-            maxHeight: '85vh',
-          }}>
+      <div className="flex flex-col w-full p-0 m-0 overflow-y-auto" style={{ backgroundColor: THEME_MAIN_BG, minHeight: `calc(100vh - ${NAVBAR_HEIGHT})`, marginTop: NAVBAR_HEIGHT }}>
+        <div className="flex w-30/31 p-4 gap-4 flex-shrink-0" style={{ height: '85vh', maxHeight: '85vh' }}>
           <div className="flex-1 flex justify-center items-center">
             <div className="flex w-full h-full rounded-xl shadow-2xl overflow-hidden" style={{ backgroundColor: THEME_LIGHT_CARD_BG }}>
               <div className="w-1/6 flex flex-col justify-end p-6" style={{ background: GRADIENT_BG_DASHBOARD }}>
                 <p className="text-white text-right font-bold text-2xl italic opacity-90">Finally, Get your Advantage.</p>
               </div>
               <div className="flex flex-col w-5/6 p-6 space-y-6 justify-between border-l border-gray-300">
-                <h2 className="text-3xl font-extrabold" style={{ color: THEME_TEXT_COLOR }}>
-                  Room: <span className="text-gray-600 font-medium">{room}</span>
-                </h2>
+                <h2 className="text-3xl font-extrabold" style={{ color: THEME_TEXT_COLOR }}>Room: <span className="text-gray-600 font-medium">{room}</span></h2>
                 <div className="flex flex-row gap-4 justify-center flex-grow overflow-x-auto">
                   <div className="flex flex-col items-center p-3 bg-white/70 rounded-2xl shadow-xl flex-shrink-0 transition-all duration-500 ease-in-out" style={{ minWidth: '200px', maxWidth: '300px' }}>
                     <h4 className="mb-2 text-lg font-semibold" style={{ color: THEME_ACCENT_COLOR }}>You</h4>
@@ -550,9 +426,8 @@ const VideoCalling = () => {
                           if (el) {
                             remoteVideoRefs.current.set(user.id, el);
                             if (user.stream && el.srcObject !== user.stream) {
-                              console.log('Setting stream for video element:', user.id);
                               el.srcObject = user.stream;
-                              el.play().catch(e => console.error('Error playing video:', e));
+                              el.play().catch(e => console.error('Play error:', e));
                             }
                           }
                         }}
@@ -579,30 +454,19 @@ const VideoCalling = () => {
                     </svg>
                     <span>{isVideoOn ? 'Turn Off Video' : 'Turn On Video'}</span>
                   </button>
-                  <button onClick={handleLeaveMeeting} className="px-6 py-3 bg-red-600 text-white font-extrabold rounded-xl shadow-lg">
-                    End Call
-                  </button>
+                  <button onClick={handleLeaveMeeting} className="px-6 py-3 bg-red-600 text-white font-extrabold rounded-xl shadow-lg">End Call</button>
                 </div>
               </div>
             </div>
           </div>
-
           <div className="w-[30%] h-full rounded-xl shadow-2xl border border-gray-300 overflow-hidden">
             <FileUploader refreshKey={refreshKey} room={room} />
           </div>
-
         </div>
-
         <div className="flex w-full p-4 gap-4 flex-shrink-0" style={{ minHeight: '80vh', paddingTop: '0' }}>
-          <div className="flex-1">
-            <Chats room={room}/>
-          </div>
-          <div className="flex-1">
-            <GeminiChatUI/>
-          </div>
-          <div className="flex-1">
-            <Notepad room={room}/>
-          </div>
+          <div className="flex-1"><Chats room={room}/></div>
+          <div className="flex-1"><GeminiChatUI/></div>
+          <div className="flex-1"><Notepad room={room}/></div>
         </div>
       </div>
       <Footer/>
