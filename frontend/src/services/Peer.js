@@ -263,17 +263,12 @@ class PeerService {
         return;
       }
 
-      // Wait for remote description to be set before adding ICE candidates
-      if (peer.pc.remoteDescription) {
-        await peer.pc.addIceCandidate(new RTCIceCandidate(candidate));
-        console.log(`Added ICE candidate for ${socketId}`);
-      } else {
-        console.warn(`Remote description not set yet for ${socketId}, cannot add ICE candidate`);
-        // You might want to queue this candidate
-      }
+      // Add ICE candidate - the browser will queue it if remote description isn't set yet
+      await peer.pc.addIceCandidate(new RTCIceCandidate(candidate));
+      console.log(`Added ICE candidate for ${socketId} (${candidate.type})`);
     } catch (err) {
-      console.error(`Error adding ICE candidate for ${socketId}:`, err);
-      // Don't throw - ICE candidate errors are often recoverable
+      // Only log as warning since ICE candidate errors are often recoverable
+      console.warn(`Could not add ICE candidate for ${socketId}:`, err.message);
     }
   }
 
