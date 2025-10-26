@@ -1,4 +1,4 @@
-// VideoCalling.jsx (fixed)
+// VideoCalling.jsx (FIXED)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocket } from './SocketProvider';
 import peer from '../services/Peer.js';
@@ -27,7 +27,7 @@ const VideoCalling = () => {
   const [generatedRoom, setGeneratedRoom] = useState("");
   const [lastGenerated, setLastGenerated] = useState("");
   const [isJoined, setIsJoined] = useState(false);
-  const [remoteUsers, setRemoteUsers] = useState([]); // Array of {id, email, stream}
+  const [remoteUsers, setRemoteUsers] = useState([]);
   const [myStream, setMyStream] = useState(null);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -35,12 +35,12 @@ const VideoCalling = () => {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [joinError, setJoinError] = useState("");
-  const [isNewJoiner, setIsNewJoiner] = useState(false);
   const [mediaStarted, setMediaStarted] = useState(false);
 
   const localVideoRef = useRef();
   const socket = useSocket();
   const myStreamRef = useRef(null);
+  const pendingIceCandidates = useRef(new Map()); // Store ICE candidates until peer is ready
 
   const generateRoomCode = () => {
     let code;
@@ -80,7 +80,6 @@ const VideoCalling = () => {
     setRoom(room);
     setIsJoined(true);
     setJoinError("");
-    setIsNewJoiner(true);
     console.log('Joined room (client):', room);
   }, []);
 
@@ -98,23 +97,7 @@ const VideoCalling = () => {
     };
   }, [socket, handleJoinRoom, handleJoinRoomError]);
 
-  const handleUserJoined = useCallback((data) => {
-    const { email, id } = data;
-    setRemoteUsers(prev => {
-      // avoid duplicates
-      if (prev.some(u => u.id === id)) return prev;
-      return [...prev, { id, email, stream: null }];
-    });
-    console.log('User joined (client):', data);
-  }, []);
-
-  const handleUserLeft = useCallback((data) => {
-    const { id } = data;
-    peer.removePeer(id); // Close the peer connection for the leaving user
-    setRemoteUsers(prev => prev.filter(user => user.id !== id));
-    console.log('User left (client):', id);
-  }, []);
-
+  // Initialize local media stream when user joins
   useEffect(() => {
     if (isJoined && !myStream && !mediaStarted) {
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -122,138 +105,196 @@ const VideoCalling = () => {
           setMyStream(stream);
           myStreamRef.current = stream;
           setMediaStarted(true);
-          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
+          }
+          console.log('Local stream initialized');
         })
-        .catch(() => setError("Camera/microphone not accessible."));
+        .catch((err) => {
+          console.error('Media error:', err);
+          setError("Camera/microphone not accessible.");
+        });
     }
   }, [isJoined, myStream, mediaStarted]);
+
+  const handleUserJoined = useCallback(async ({ email, id }) => {
+    console.log('User joined:', email, id);
+    
+    // Add user to remote users list
+    setRemoteUsers(prev => {
+      if (prev.some(u => u.id === id)) return prev;
+      return [...prev, { id, email, stream: null }];
+    });
+
+    // If I have a stream, initiate call to the new user
+    if (myStreamRef.current) {
+      try {
+        // Create peer connection for this user
+        const pc = peer.createPeer(
+          id,
+          (remoteStream) => {
+            console.log('Received remote stream from', id);
+            setRemoteUsers(prev => 
+              prev.map(u => u.id === id ? { ...u, stream: remoteStream } : u)
+            );
+          },
+          async () => {
+            // Negotiation needed - send new offer
+            try {
+              const offer = await peer.getOffer(id);
+              socket.emit('room:peer:nego:needed', { room, offer });
+            } catch (err) {
+              console.error('Negotiation error:', err);
+            }
+          },
+          (candidate) => {
+            // Send ICE candidate
+            socket.emit('room:ice:candidate', { room, candidate, to: id });
+          }
+        );
+
+        // Add local stream to this peer
+        peer.addLocalStreamToPeer(id, myStreamRef.current);
+
+        // Process any pending ICE candidates for this peer
+        const pending = pendingIceCandidates.current.get(id);
+        if (pending && pending.length > 0) {
+          console.log(`Processing ${pending.length} pending ICE candidates for`, id);
+          for (const candidate of pending) {
+            await peer.addIceCandidate(id, candidate);
+          }
+          pendingIceCandidates.current.delete(id);
+        }
+
+        // Create and send offer
+        const offer = await peer.getOffer(id);
+        socket.emit('room:call', { room, offer });
+        console.log('Sent offer to new user:', id);
+      } catch (err) {
+        console.error('Error initiating call to new user:', err);
+      }
+    }
+  }, [socket, room]);
+
+  const handleUserLeft = useCallback((data) => {
+    const { id } = data;
+    console.log('User left:', id);
+    peer.removePeer(id);
+    pendingIceCandidates.current.delete(id);
+    setRemoteUsers(prev => prev.filter(user => user.id !== id));
+  }, []);
 
   const handleIncomingCall = useCallback(async ({ from, offer }) => {
     try {
       console.log('Incoming call from', from);
+      
       let stream = myStreamRef.current;
       if (!stream) {
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setMyStream(stream);
         myStreamRef.current = stream;
         setMediaStarted(true);
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
       }
 
-      peer.createPeer(from, (remoteStream) => {
-        setRemoteUsers(prev => prev.map(user => user.id === from ? { ...user, stream: remoteStream } : user));
-      }, () => {
-        // negotiation needed for this peer
-        handleNegoNeeded(from);
-      }, (candidate) => {
-        // emit ICE candidate for this peer
-        socket.emit('room:ice:candidate', { room, candidate, to: from });
-      });
+      // Create peer connection
+      peer.createPeer(
+        from,
+        (remoteStream) => {
+          console.log('Received remote stream from', from);
+          setRemoteUsers(prev => 
+            prev.map(u => u.id === from ? { ...u, stream: remoteStream } : u)
+          );
+        },
+        async () => {
+          try {
+            const offer = await peer.getOffer(from);
+            socket.emit('room:peer:nego:needed', { room, offer });
+          } catch (err) {
+            console.error('Negotiation error:', err);
+          }
+        },
+        (candidate) => {
+          socket.emit('room:ice:candidate', { room, candidate, to: from });
+        }
+      );
 
-      // add local stream tracks to peer
+      // Add local stream
       peer.addLocalStreamToPeer(from, stream);
 
-      // set remote offer and create/send answer
+      // Process any pending ICE candidates
+      const pending = pendingIceCandidates.current.get(from);
+      if (pending && pending.length > 0) {
+        console.log(`Processing ${pending.length} pending ICE candidates for`, from);
+        for (const candidate of pending) {
+          await peer.addIceCandidate(from, candidate);
+        }
+        pendingIceCandidates.current.delete(from);
+      }
+
+      // Set remote offer and create answer
       const answer = await peer.getAnswer(from, offer);
       socket.emit('room:call:accepted', { room, answer });
       console.log('Sent answer to', from);
-    } catch (err) {
-      console.error('handleIncomingCall error', err);
-      setError("Camera/microphone not available.");
-    }
-  }, [socket, room]);
-
-  const handleCallUser = useCallback(async () => {
-    try {
-      let stream = myStreamRef.current;
-      if (!stream) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setMyStream(stream);
-        myStreamRef.current = stream;
-        setMediaStarted(true);
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-      }
-
-      // Create peers and send offers to all remote users that don't already have a peer
-      for (const user of remoteUsers) {
-        if (!peer.peers.has(user.id)) {
-          peer.createPeer(user.id, (remoteStream) => {
-            setRemoteUsers(prev => prev.map(u => u.id === user.id ? { ...u, stream: remoteStream } : u));
-          }, () => {
-            handleNegoNeeded(user.id);
-          }, (candidate) => {
-            socket.emit('room:ice:candidate', { room, candidate, to: user.id });
-          });
-
-          peer.addLocalStreamToPeer(user.id, stream);
-
-          const offer = await peer.getOffer(user.id);
-          socket.emit('room:call', { room, offer });
-          console.log('Sent offer to', user.id);
-        }
-      }
+      
       setIsCallActive(true);
     } catch (err) {
-      console.error('handleCallUser error', err);
-      setError("Camera/microphone not available.");
+      console.error('handleIncomingCall error:', err);
+      setError("Failed to establish connection.");
     }
-  }, [remoteUsers, socket, room]);
-
-  // Automatically start call when remote users are present
-  useEffect(() => {
-    if (isJoined && remoteUsers.length > 0) {
-      handleCallUser();
-    }
-  }, [isJoined, remoteUsers.length, handleCallUser]);
+  }, [socket, room]);
 
   const handleCallAccepted = useCallback(async ({ from, answer }) => {
     try {
       console.log('Call accepted by', from);
       await peer.setRemoteDescription(from, answer);
+      setIsCallActive(true);
     } catch (err) {
-      console.warn('handleCallAccepted error', err);
+      console.error('handleCallAccepted error:', err);
     }
   }, []);
 
-  const handleNegoNeeded = useCallback(async (remoteSocketId) => {
-    try {
-      const offer = await peer.getOffer(remoteSocketId);
-      socket.emit('room:peer:nego:needed', { room, offer });
-      console.log('Negotiation needed - sent offer to room for', remoteSocketId);
-    } catch (err) {
-      console.warn('handleNegoNeeded error', err);
-    }
-  }, [socket, room]);
-
   const handleNegoNeedIncoming = useCallback(async ({ from, offer }) => {
     try {
-      await peer.setRemoteDescription(from, offer);
-      const answer = await peer.getAnswer(from);
+      console.log('Negotiation needed from', from);
+      const answer = await peer.getAnswer(from, offer);
       socket.emit('room:peer:nego:done', { room, answer });
-      console.log('Negotiation incoming - sent answer for', from);
+      console.log('Sent negotiation answer to', from);
     } catch (err) {
-      console.warn('handleNegoNeedIncoming error', err);
+      console.error('handleNegoNeedIncoming error:', err);
     }
   }, [socket, room]);
 
   const handleNegoNeedFinal = useCallback(async ({ from, answer }) => {
     try {
+      console.log('Final negotiation answer from', from);
       await peer.setRemoteDescription(from, answer);
-      console.log('Negotiation final applied for', from);
     } catch (err) {
-      console.warn('handleNegoNeedFinal error', err);
+      console.error('handleNegoNeedFinal error:', err);
     }
   }, []);
 
   const handleIceCandidate = useCallback(async ({ candidate, from }) => {
     try {
-      if (candidate) {
+      if (!candidate) return;
+      
+      console.log('Received ICE candidate from', from);
+      
+      // Check if peer connection exists
+      if (peer.peers.has(from)) {
         await peer.addIceCandidate(from, candidate);
-        // Debug log
-        console.log('Received ICE candidate from', from);
+      } else {
+        // Store candidate for later when peer connection is created
+        console.log('Storing ICE candidate for later:', from);
+        if (!pendingIceCandidates.current.has(from)) {
+          pendingIceCandidates.current.set(from, []);
+        }
+        pendingIceCandidates.current.get(from).push(candidate);
       }
     } catch (err) {
-      console.warn('handleIceCandidate error', err);
+      console.error('handleIceCandidate error:', err);
     }
   }, []);
 
@@ -298,11 +339,14 @@ const VideoCalling = () => {
   }, []);
 
   const handleLeaveMeeting = useCallback(async () => {
-    console.log('End call clicked');
+    console.log('Leaving meeting');
     setIsJoined(false);
     try {
-      if (myStreamRef.current) myStreamRef.current.getTracks().forEach(track => track.stop());
+      if (myStreamRef.current) {
+        myStreamRef.current.getTracks().forEach(track => track.stop());
+      }
       peer.closeAllPeers();
+      pendingIceCandidates.current.clear();
       socket.emit('room:leave', { room });
       setMyStream(null);
       myStreamRef.current = null;
@@ -310,7 +354,7 @@ const VideoCalling = () => {
       setError(null);
       setRemoteUsers([]);
       setIsCallActive(false);
-      setIsNewJoiner(false);
+      setMediaStarted(false);
       setRefreshKey(prev => prev + 1);
       localStorage.removeItem(`notes_${room}`);
     } catch (error) {
