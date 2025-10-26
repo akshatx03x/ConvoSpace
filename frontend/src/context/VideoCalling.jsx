@@ -135,6 +135,8 @@ import Chats from '../pages/Chats.jsx'
             setRemoteUsers(prev => prev.map(user => user.id === from ? { ...user, stream: remoteStream } : user))
           }, () => {
             handleNegoNeeded(from)
+          }, (candidate) => {
+            socket.emit('room:ice:candidate', { room, candidate, to: from })
           })
           peer.addLocalStreamToPeer(from, stream)
           const answer = await peer.getAnswer(from, offer)
@@ -161,6 +163,8 @@ import Chats from '../pages/Chats.jsx'
                 setRemoteUsers(prev => prev.map(u => u.id === user.id ? { ...u, stream: remoteStream } : u))
               }, () => {
                 handleNegoNeeded(user.id)
+              }, (candidate) => {
+                socket.emit('room:ice:candidate', { room, candidate, to: user.id })
               })
               peer.addLocalStreamToPeer(user.id, stream)
               const offer = await peer.getOffer(user.id)
@@ -199,6 +203,12 @@ import Chats from '../pages/Chats.jsx'
         await peer.setRemoteDescription(from, answer)
       }, [])
 
+      const handleIceCandidate = useCallback(async ({ candidate, from }) => {
+        if (candidate) {
+          await peer.addIceCandidate(from, candidate)
+        }
+      }, [])
+
       useEffect(() => {
         socket.on('user:join', handleUserJoined)
         socket.on('user:left', handleUserLeft)
@@ -206,6 +216,7 @@ import Chats from '../pages/Chats.jsx'
         socket.on('room:call:accepted', handleCallAccepted)
         socket.on('room:peer:nego:needed', handleNegoNeedIncoming)
         socket.on('room:peer:nego:final', handleNegoNeedFinal)
+        socket.on('room:ice:candidate', handleIceCandidate)
         return () => {
           socket.off('user:join', handleUserJoined)
           socket.off('user:left', handleUserLeft)
@@ -213,8 +224,9 @@ import Chats from '../pages/Chats.jsx'
           socket.off('room:call:accepted', handleCallAccepted)
           socket.off('room:peer:nego:needed', handleNegoNeedIncoming)
           socket.off('room:peer:nego:final', handleNegoNeedFinal)
+          socket.off('room:ice:candidate', handleIceCandidate)
         }
-      }, [socket, handleUserJoined, handleUserLeft, handleIncomingCall, handleCallAccepted, handleNegoNeedIncoming, handleNegoNeedFinal])
+      }, [socket, handleUserJoined, handleUserLeft, handleIncomingCall, handleCallAccepted, handleNegoNeedIncoming, handleNegoNeedFinal, handleIceCandidate])
 
       useEffect(() => {
         // Note: Track listeners are added when peers are created

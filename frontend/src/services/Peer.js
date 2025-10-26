@@ -3,7 +3,7 @@ class PeerService {
         this.peers = new Map(); // Map of socketId to { pc, onStream }
     }
 
-    createPeer(socketId, onStream, onNegotiationNeeded) {
+    createPeer(socketId, onStream, onNegotiationNeeded, onIceCandidate) {
         const pc = new RTCPeerConnection({
             iceServers: [
                 {
@@ -15,8 +15,8 @@ class PeerService {
         });
 
         pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                // Handle ICE candidates if needed, but for now, assuming trickle ICE is handled elsewhere
+            if (event.candidate && onIceCandidate) {
+                onIceCandidate(event.candidate);
             }
         };
 
@@ -28,7 +28,7 @@ class PeerService {
 
         pc.onnegotiationneeded = onNegotiationNeeded;
 
-        this.peers.set(socketId, { pc, onStream, onNegotiationNeeded });
+        this.peers.set(socketId, { pc, onStream, onNegotiationNeeded, onIceCandidate });
         return pc;
     }
 
@@ -73,6 +73,13 @@ class PeerService {
                 peer.pc.addTrack(track, stream);
             });
         });
+    }
+
+    async addIceCandidate(socketId, candidate) {
+        const peer = this.peers.get(socketId);
+        if (peer) {
+            await peer.pc.addIceCandidate(new RTCIceCandidate(candidate));
+        }
     }
 
     removePeer(socketId) {
