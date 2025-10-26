@@ -1,4 +1,4 @@
-// VideoCalling.jsx (COMPLETE FIXED VERSION)
+// VideoCalling.jsx (COMPLETE FIX - Socket Ready Check)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocket } from './SocketProvider';
 import peer from '../services/Peer.js';
@@ -51,59 +51,73 @@ const VideoCalling = () => {
 
   const handleCreateRoom = (e) => {
     e.preventDefault();
+    if (!socket) {
+      setJoinError("Connection not ready. Please wait...");
+      return;
+    }
     const user = JSON.parse(localStorage.getItem('user'));
     const email = user?.email;
     if (generatedRoom) {
+      console.log('Creating room:', generatedRoom);
       socket.emit('room:join', { email, room: generatedRoom });
     }
   };
 
   const handleJoinRoomSubmit = (e) => {
     e.preventDefault();
+    if (!socket) {
+      setJoinError("Connection not ready. Please wait...");
+      return;
+    }
     const user = JSON.parse(localStorage.getItem('user'));
     const email = user?.email;
     if (joinRoom) {
       if (/^[A-F0-9]{5}$/.test(joinRoom.toUpperCase())) {
+        console.log('Joining room:', joinRoom.toUpperCase());
         setRoom(joinRoom.toUpperCase());
         socket.emit('room:join', { email, room: joinRoom.toUpperCase() });
       } else {
-        setJoinError("Enter a valid room code.");
+        setJoinError("Enter a valid 5-character room code.");
       }
     }
   };
 
   const handleJoinRoom = useCallback((data) => {
     const { room } = data;
+    console.log('✅ Joined room:', room);
     setRoom(room);
     setIsJoined(true);
     setJoinError("");
-    console.log('✅ Joined room:', room);
   }, []);
 
   const handleJoinRoomError = useCallback((data) => {
     const { message } = data;
-    setJoinError(message || "Invalid room code or meeting not active.");
+    console.error('❌ Join error:', message);
+    setJoinError(message || "Unable to join room.");
   }, []);
 
   useEffect(() => {
+    if (!socket) return;
+    
     socket.on('room:join', handleJoinRoom);
     socket.on('room:join:error', handleJoinRoomError);
+    
     return () => {
       socket.off('room:join', handleJoinRoom);
       socket.off('room:join:error', handleJoinRoomError);
     };
   }, [socket, handleJoinRoom, handleJoinRoomError]);
 
-  // Get local media stream when joined
+  // Get local media when joined
   useEffect(() => {
     if (isJoined && !myStream && !mediaStarted) {
-      console.log('🎥 Requesting local media...');
+      console.log('🎥 Getting local media...');
       navigator.mediaDevices.getUserMedia({ 
         video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
         audio: true 
       })
         .then((stream) => {
-          console.log('✅ Local stream obtained');
+          console.log('✅ Got local stream');
           setMyStream(stream);
           myStreamRef.current = stream;
           setMediaStarted(true);
@@ -118,36 +132,30 @@ const VideoCalling = () => {
     }
   }, [isJoined, myStream, mediaStarted]);
 
-  // Handle new user joining
   const handleUserJoined = useCallback(async ({ email, id }) => {
     console.log('👤 User joined:', email, id);
     
     setRemoteUsers(prev => {
-      if (prev.some(u => u.id === id)) {
-        console.log('User already exists:', id);
-        return prev;
-      }
+      if (prev.some(u => u.id === id)) return prev;
       return [...prev, { id, email, stream: null }];
     });
 
     if (!myStreamRef.current) {
-      console.warn('⚠️ Local stream not ready yet');
+      console.warn('⚠️ Local stream not ready');
       return;
     }
 
     console.log('📞 Creating peer for:', id);
     
     try {
-      // Create peer connection
       peer.createPeer(
         id,
         (remoteStream) => {
-          console.log('✅ Remote stream received from:', id);
+          console.log('✅ Remote stream from:', id);
           setRemoteUsers(prev => 
             prev.map(u => u.id === id ? { ...u, stream: remoteStream } : u)
           );
           
-          // Set video element directly
           const videoEl = remoteVideoRefs.current.get(id);
           if (videoEl) {
             videoEl.srcObject = remoteStream;
@@ -168,10 +176,8 @@ const VideoCalling = () => {
         }
       );
 
-      // Add local stream
       peer.addLocalStreamToPeer(id, myStreamRef.current);
 
-      // Send offer
       const offer = await peer.getOffer(id);
       socket.emit('room:call', { room, offer });
       console.log('📤 Offer sent to:', id);
@@ -188,14 +194,12 @@ const VideoCalling = () => {
     setRemoteUsers(prev => prev.filter(user => user.id !== id));
   }, []);
 
-  // Handle incoming call
   const handleIncomingCall = useCallback(async ({ from, offer }) => {
     console.log('📞 Incoming call from:', from);
     
     try {
       let stream = myStreamRef.current;
       if (!stream) {
-        console.log('Getting media for incoming call...');
         stream = await navigator.mediaDevices.getUserMedia({ 
           video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
           audio: true 
@@ -208,11 +212,10 @@ const VideoCalling = () => {
         }
       }
 
-      // Create peer
       peer.createPeer(
         from,
         (remoteStream) => {
-          console.log('✅ Remote stream received from:', from);
+          console.log('✅ Remote stream from:', from);
           setRemoteUsers(prev => 
             prev.map(u => u.id === from ? { ...u, stream: remoteStream } : u)
           );
@@ -224,7 +227,6 @@ const VideoCalling = () => {
           }
         },
         async () => {
-          console.log('🔄 Renegotiation for:', from);
           try {
             const offer = await peer.getOffer(from);
             socket.emit('room:peer:nego:needed', { room, offer });
@@ -237,10 +239,8 @@ const VideoCalling = () => {
         }
       );
 
-      // Add local stream
       peer.addLocalStreamToPeer(from, stream);
 
-      // Create and send answer
       const answer = await peer.getAnswer(from, offer);
       socket.emit('room:call:accepted', { room, answer });
       console.log('📤 Answer sent to:', from);
@@ -279,7 +279,7 @@ const VideoCalling = () => {
 
   const handleIceCandidate = useCallback(async ({ candidate, from }) => {
     if (!candidate) return;
-    console.log('📥 ICE from:', from, candidate.type);
+    console.log('📥 ICE from:', from);
     try {
       await peer.addIceCandidate(from, candidate);
     } catch (err) {
@@ -288,6 +288,8 @@ const VideoCalling = () => {
   }, []);
 
   useEffect(() => {
+    if (!socket) return;
+
     socket.on('user:join', handleUserJoined);
     socket.on('user:left', handleUserLeft);
     socket.on('room:incoming:call', handleIncomingCall);
@@ -346,7 +348,9 @@ const VideoCalling = () => {
       }
       peer.closeAllPeers();
       remoteVideoRefs.current.clear();
-      socket.emit('room:leave', { room });
+      if (socket) {
+        socket.emit('room:leave', { room });
+      }
       setMyStream(null);
       myStreamRef.current = null;
       setRoom("");
@@ -359,6 +363,18 @@ const VideoCalling = () => {
       console.error('❌ Error leaving:', error);
     }
   }, [socket, room]);
+
+  // Show loading if socket not ready
+  if (!socket) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center" style={{ backgroundColor: '#d9bdb8' }}>
+        <div className="text-center">
+          <div className="text-2xl font-bold mb-4" style={{ color: THEME_TEXT_COLOR }}>Connecting...</div>
+          <div className="text-gray-600">Please wait while we establish connection</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isJoined) {
     return (
@@ -440,19 +456,10 @@ const VideoCalling = () => {
                 </div>
                 <div className="flex justify-center p-3 space-x-4">
                   <button onClick={toggleMic} className="px-6 py-3 text-white font-extrabold rounded-xl shadow-lg flex items-center space-x-2" style={{ backgroundColor: isMicOn ? THEME_ACCENT_COLOR : '#666' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M19 10V12C19 16.4183 15.4183 20 11 20H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      {!isMicOn && <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>}
-                    </svg>
-                    <span>{isMicOn ? 'Mute Mic' : 'Unmute Mic'}</span>
+                    <span>{isMicOn ? '🎤 Mute' : '🔇 Unmute'}</span>
                   </button>
                   <button onClick={toggleVideo} className="px-6 py-3 text-white font-extrabold rounded-xl shadow-lg flex items-center space-x-2" style={{ backgroundColor: isVideoOn ? THEME_ACCENT_COLOR : '#666' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M15 10L19.553 7.724C20.127 7.418 20.127 6.582 19.553 6.276L12 2C11.426 1.694 10.574 1.694 10 2L2.447 6.276C1.873 6.582 1.873 7.418 2.447 7.724L7 10M15 10L19.553 12.276C20.127 12.582 20.127 13.418 19.553 13.724L12 18C11.426 18.306 10.574 18.306 10 18L2.447 13.724C1.873 13.418 1.873 12.582 2.447 12.276L7 10M15 10V14C15 15.105 14.105 16 13 16H11C9.895 16 9 15.105 9 14V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      {!isVideoOn && <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>}
-                    </svg>
-                    <span>{isVideoOn ? 'Turn Off Video' : 'Turn On Video'}</span>
+                    <span>{isVideoOn ? '📹 Stop Video' : '📹 Start Video'}</span>
                   </button>
                   <button onClick={handleLeaveMeeting} className="px-6 py-3 bg-red-600 text-white font-extrabold rounded-xl shadow-lg">End Call</button>
                 </div>
