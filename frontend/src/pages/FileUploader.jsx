@@ -1,199 +1,259 @@
-import React, { useEffect } from 'react';
-import { useRef, useState } from 'react';
+// FileUploader.jsx (UI Redesign - Premium File Management)
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useSocket } from '../context/SocketProvider.jsx';
-const THEME_LIGHT_CARD_BG = '#F0EBEA';
-const THEME_ACCENT_COLOR = '#A06C78';
-const THEME_TEXT_COLOR = '#333333';
+import { CloudUpload, FileText, Download, Trash2, FolderOpen } from 'lucide-react';
 
+// External Service Imports (Functionality remains UNCHANGED)
 import { uploadFile } from '../services/fileupload.js';
 import { getFiles } from '../services/getFiles.js';
 import { downloadFile } from '../services/downloadFile.js';
 import { deleteFile } from '../services/deleteFile.js';
 
-const UploadCloudIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-cloud-upload">
-        <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.243"/>
-        <path d="M12 12v9"/>
-        <path d="m16 16-4-4-4 4"/>
-    </svg>
-);
+// Design Tokens (Imported for consistency)
+const DESIGN_TOKENS = {
+  colors: {
+    primary: '#0066FF',       // Vibrant blue
+    primaryHover: '#0052CC',
+    secondary: '#FF3B30',     // Accent red for delete
+    surface: '#FFFFFF',
+    surfaceElevated: '#F5F5F7', // Light gray background
+    border: '#E5E5EA',
+    text: {
+      primary: '#1D1D1F',
+      secondary: '#86868B',
+      tertiary: '#AEAEB2'
+    },
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+  },
+  shadows: {
+    sm: '0 1px 3px rgba(0,0,0,0.08)',
+    md: '0 4px 12px rgba(0,0,0,0.1)',
+  },
+  radius: {
+    lg: '16px',
+    xl: '24px',
+  }
+};
+
+const PRIMARY_COLOR = DESIGN_TOKENS.colors.primary;
+const ACCENT_GRADIENT = DESIGN_TOKENS.colors.gradient;
+const PRIMARY_TEXT = DESIGN_TOKENS.colors.text.primary;
+const SECONDARY_TEXT = DESIGN_TOKENS.colors.text.secondary;
+const ELEVATED_BG = DESIGN_TOKENS.colors.surfaceElevated;
+const SURFACE_BG = DESIGN_TOKENS.colors.surface;
+const BORDER_COLOR = DESIGN_TOKENS.colors.border;
+
 
 const FileUploader = ({ refreshKey, room }) => {
-    const socket = useSocket();
-    // This state is purely for visual feedback/placeholding, as requested.
-    const isDragging = false;
-    const fileInputRef = useRef();
-    const [file, setFile] = useState(null);
-    const [uploadedFiles, setUploadedFiles] = useState([]);
-    const onUploadClick = () => {
-        fileInputRef.current.click();
+  const socket = useSocket();
+  const fileInputRef = useRef();
+  const [file, setFile] = useState(null);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false); // Using this state visually
+  const [isUploading, setIsUploading] = useState(false);
+
+  const onUploadClick = () => {
+    fileInputRef.current.click();
+  }
+
+  // --- START: Existing Functionality (REFACTOR: Consolidated file fetching) ---
+
+  const fetchFiles = useCallback(async () => {
+    if (room) {
+      const data = await getFiles(room);
+      setUploadedFiles(data.files || []);
     }
+  }, [room]);
 
-    useEffect(() => {
-        const fetchFiles = async () => {
-            if (room) {
-                const data = await getFiles(room);
-                setUploadedFiles(data.files || []);
-            }
-        };
-        fetchFiles();
-    }, [refreshKey, room]);
+  useEffect(() => {
+    fetchFiles();
+  }, [refreshKey, room, fetchFiles]);
 
-    useEffect(() => {
-        if (socket) {
-            socket.on('file:shared', (data) => {
-                // Refresh the file list when a new file is shared
-                const fetchFiles = async () => {
-                    if (room) {
-                        const updatedData = await getFiles(room);
-                        setUploadedFiles(updatedData.files || []);
-                    }
-                };
-                fetchFiles();
-            });
+  useEffect(() => {
+    if (!socket) return;
 
-            socket.on('file:deleted', (data) => {
-                // Refresh the file list when a file is deleted
-                const fetchFiles = async () => {
-                    if (room) {
-                        const updatedData = await getFiles(room);
-                        setUploadedFiles(updatedData.files || []);
-                    }
-                };
-                fetchFiles();
-            });
+    // Listeners to refresh file list on events
+    const handleFileEvent = (data) => {
+      fetchFiles();
+    };
+    
+    socket.on('file:shared', handleFileEvent);
+    socket.on('file:deleted', handleFileEvent);
+
+    return () => {
+      socket.off('file:shared', handleFileEvent);
+      socket.off('file:deleted', handleFileEvent);
+    };
+  }, [socket, room, fetchFiles]);
+
+  // Upload Logic (Triggered by file state change)
+  useEffect(() => {
+    const upload = async () => {
+      if (file && room) {
+        setIsUploading(true);
+        const data = new FormData();
+        data.append('name', file.name);
+        data.append('file', file);
+        data.append('room', room);
+
+        try {
+          await uploadFile(data, room);
+          fetchFiles(); // Refresh file list
+        } catch (error) {
+          console.error("Upload failed:", error);
+        } finally {
+          setIsUploading(false);
+          setFile(null); // Clear file input
         }
-    }, [socket, room]);
+      }
+    }
+    upload();
+  }, [file, room, fetchFiles])
 
-    useEffect(() => {
-        const getfile=async()=>{
-            if(file && room){
-                const data= new FormData();
-                data.append('name',file.name);
-                data.append('file',file);
-                data.append('room', room);
-                let response= await uploadFile(data, room);
-                if (response) {
-                    // Refresh the file list after upload
-                    const updatedData = await getFiles(room);
-                    setUploadedFiles(updatedData.files || []);
-                }
-            }
-        }
-        getfile();
-    }, [file, room])
-    const dropZoneClasses = `
-        w-full p-4 border-4 border-dashed rounded-2xl
-        flex flex-col items-center justify-center text-center
-        transition-all duration-300 cursor-pointer
-        ${isDragging
-            ? 'shadow-xl scale-[1.01]'
-            : 'shadow-md hover:shadow-lg'
-        }
-    `;
+  // Delete Handler
+  const handleDelete = useCallback(async (fileId) => {
+    try {
+      await deleteFile(fileId);
+      fetchFiles();
+    } catch (error) {
+      console.error("Deletion failed:", error);
+    }
+  }, [fetchFiles]);
 
-    return (
+  // --- END: Existing Functionality ---
+
+  // Enhanced Drop Zone Classes
+  const dropZoneClasses = `
+    w-full p-6 border-2 border-dashed rounded-xl
+    flex flex-col items-center justify-center text-center
+    transition-all duration-300 cursor-pointer
+    ${isDragging
+      ? 'shadow-md border-solid scale-[1.01]'
+      : 'shadow-sm hover:shadow-md'
+    }
+  `;
+
+  return (
+    <div
+      className="h-full w-full p-0 flex flex-col font-sans overflow-hidden"
+      style={{ backgroundColor: SURFACE_BG }}
+    >
+      <div className="flex-1 flex flex-col p-4">
+        {/* Header */}
         <div
-            className="h-full w-full p-4 flex flex-col font-sans overflow-y-auto rounded-xl"
-            style={{ backgroundColor: THEME_LIGHT_CARD_BG }}
+          className="pb-4 mb-4 flex items-center justify-between"
+          style={{ borderBottom: `1px solid ${BORDER_COLOR}` }}
         >
-            <div className="flex-1">
-                <div
-                    className="p-4 rounded-xl shadow-lg h-full flex flex-col"
-                    style={{ backgroundColor: 'white' }}
-                >
-                    <h2
-                        className="text-2xl font-bold mb-4 text-center"
-                        style={{ color: THEME_ACCENT_COLOR }}
-                    >
-                        Upload Documents
-                    </h2>
-
-                    {/* File Drop Zone Area */}
-                    <div
-                        className={dropZoneClasses}
-                        style={{
-                            borderColor: THEME_ACCENT_COLOR + (isDragging ? '' : '60'), // Lighter border when not dragging
-                            backgroundColor: isDragging ? THEME_LIGHT_CARD_BG : 'white',
-                            color: THEME_TEXT_COLOR
-                        }}
-                    >
-                        <UploadCloudIcon />
-
-                        <p className="mt-2 text-base font-semibold">
-                            Drag & Drop your file here
-                        </p>
-                        <p className="text-xs opacity-70 mb-4">
-                            (Max: 5MB, PDF, DOCX, TXT)
-                        </p>
-
-                        <div className="flex items-center space-x-2 w-full">
-                            <div className="flex-grow h-px" style={{ backgroundColor: THEME_ACCENT_COLOR + '60' }}></div>
-                            <span className="text-xs uppercase font-medium" style={{ color: THEME_ACCENT_COLOR }}>OR</span>
-                            <div className="flex-grow h-px" style={{ backgroundColor: THEME_ACCENT_COLOR + '60' }}></div>
-                        </div>
-
-                        {/* Select File Button */}
-                        <button onClick={()=>onUploadClick()}
-                            className="mt-4 px-6 py-2 rounded-full text-sm font-medium shadow-lg transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98] focus:outline-none"
-                            style={{
-                                backgroundColor: THEME_ACCENT_COLOR,
-                                color: 'white',
-                            }}
-                        >
-                            Select File
-                        </button>
-
-                        <input
-                            ref={fileInputRef}
-                            style={{display:"none"}}
-                            type="file"
-                            className="hidden"
-                            id="file-upload"
-                            onChange={(e)=>{
-                                setFile(e.target.files[0])
-                            }}
-                        />
-                    </div>
-
-                    {/* Uploaded Files List */}
-                    <div className="mt-4 p-3 rounded-lg text-xs flex-1" style={{ backgroundColor: THEME_LIGHT_CARD_BG, color: THEME_TEXT_COLOR }}>
-                        <p className="font-medium" style={{ color: THEME_ACCENT_COLOR }}>Uploaded Files:</p>
-                        {uploadedFiles.length > 0 ? (
-                            <ul className="mt-2 space-y-1">
-                                {uploadedFiles.map((file, index) => (
-                                    <li key={index} className="text-xs flex justify-between items-center">
-                                        <span>{file.name}</span>
-                                        <div className="flex space-x-1">
-                                            <button
-                                                onClick={() => downloadFile(file._id, file.name)}
-                                                className="px-2 py-1 text-xs rounded bg-blue-500 text-white hover:bg-blue-600"
-                                            >
-                                                Download
-                                            </button>
-                                            <button
-                                                onClick={async () => {
-                                                    await deleteFile(file._id);
-                                                    // Refresh the file list after deletion
-                                                    const updatedData = await getFiles(room);
-                                                    setUploadedFiles(updatedData.files || []);
-                                                }}
-                                                className="px-2 py-1 text-xs rounded bg-red-500 text-white hover:bg-red-600"
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="mt-2">No files uploaded yet.</p>
-                        )}
-                    </div>
-                </div>
-            </div>
+          <h2
+            className="text-xl font-bold flex items-center"
+            style={{ color: PRIMARY_TEXT }}
+          >
+            <FolderOpen size={20} style={{ color: PRIMARY_COLOR }} className="mr-2"/>
+            Shared Files
+          </h2>
+          <span className="text-sm font-medium" style={{ color: SECONDARY_TEXT }}>
+            Room: {room}
+          </span>
         </div>
-    );
+
+        {/* File Drop Zone Area */}
+        <div 
+          className={dropZoneClasses}
+          style={{
+            borderColor: isDragging ? PRIMARY_COLOR : BORDER_COLOR,
+            backgroundColor: isDragging ? ELEVATED_BG : SURFACE_BG,
+            color: PRIMARY_TEXT,
+            marginBottom: '1rem',
+          }}
+        >
+          <CloudUpload size={32} style={{ color: PRIMARY_COLOR }} />
+
+          <p className="mt-2 text-base font-semibold">
+            {isUploading ? 'Uploading...' : 'Drag & Drop your file here'}
+          </p>
+          <p className="text-xs" style={{ color: SECONDARY_TEXT }}>
+            (Max: 5MB, PDF, DOCX, TXT)
+          </p>
+
+          <div className="flex items-center space-x-2 w-full my-3">
+            <div className="flex-grow h-px" style={{ backgroundColor: BORDER_COLOR }}></div>
+            <span className="text-xs uppercase font-medium" style={{ color: SECONDARY_TEXT }}>OR</span>
+            <div className="flex-grow h-px" style={{ backgroundColor: BORDER_COLOR }}></div>
+          </div>
+
+          {/* Select File Button */}
+          <button 
+            onClick={onUploadClick}
+            disabled={isUploading}
+            className="mt-2 px-6 py-2 rounded-full text-sm font-semibold shadow-md transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98] focus:outline-none disabled:opacity-60"
+            style={{
+              background: ACCENT_GRADIENT,
+              color: SURFACE_BG,
+            }}
+          >
+            {isUploading ? 'Processing...' : 'Select File'}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            style={{display:"none"}}
+            type="file"
+            id="file-upload"
+            onChange={(e) => {
+              if(e.target.files.length > 0) setFile(e.target.files[0]);
+            }}
+          />
+        </div>
+
+        {/* Uploaded Files List */}
+        <div className="flex-1 overflow-y-auto" style={{ backgroundColor: SURFACE_BG }}>
+          <h3 className="text-sm font-semibold mb-2" style={{ color: PRIMARY_TEXT }}>Shared Documents ({uploadedFiles.length})</h3>
+          
+          <div className="space-y-2">
+            {uploadedFiles.length > 0 ? (
+              uploadedFiles.map((file, index) => (
+                <div 
+                  key={index} 
+                  className="p-3 flex justify-between items-center rounded-lg border transition-all duration-200 hover:shadow-sm"
+                  style={{ backgroundColor: ELEVATED_BG, borderColor: BORDER_COLOR }}
+                >
+                  <div className="flex items-center space-x-2 truncate">
+                    <FileText size={18} style={{ color: PRIMARY_COLOR }} className="flex-shrink-0" />
+                    <span className="text-sm font-medium truncate" style={{ color: PRIMARY_TEXT }}>
+                      {file.name}
+                    </span>
+                  </div>
+                  
+                  <div className="flex space-x-2 flex-shrink-0">
+                    <button
+                      onClick={() => downloadFile(file._id, file.name)}
+                      className="p-1.5 rounded-full transition-colors duration-200 hover:bg-gray-200"
+                      style={{ color: PRIMARY_COLOR }}
+                      title="Download File"
+                    >
+                      <Download size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(file._id)}
+                      className="p-1.5 rounded-full transition-colors duration-200 hover:bg-red-100"
+                      style={{ color: DESIGN_TOKENS.colors.secondary }}
+                      title="Delete File"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="mt-4 text-center text-sm" style={{ color: SECONDARY_TEXT }}>
+                No documents shared in this room yet.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default FileUploader;

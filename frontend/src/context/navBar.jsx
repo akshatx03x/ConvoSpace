@@ -1,99 +1,200 @@
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Menu, X } from 'lucide-react' // Using lucide-react for icons
+import React, { useState } from 'react';
+import { Menu, X, Sparkles } from 'lucide-react';
 
-const THEME_ACCENT_COLOR = '#A06C78'
-const BUTTON_HOVER_COLOR = '#8B5C67' // Extracted the hover color for clarity
+// Premium Design System - Inspired by Apple & Google
+const DESIGN_TOKENS = {
+  colors: {
+    primary: '#0066FF',      // Vibrant blue
+    primaryHover: '#0052CC',
+    secondary: '#FF3B30',    // Accent red
+    surface: '#FFFFFF',
+    surfaceElevated: '#F5F5F7',
+    border: '#E5E5EA',
+    text: {
+      primary: '#1D1D1F',
+      secondary: '#86868B',
+      tertiary: '#AEAEB2'
+    },
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+  },
+  shadows: {
+    sm: '0 1px 3px rgba(0,0,0,0.08)',
+    md: '0 4px 12px rgba(0,0,0,0.1)',
+    lg: '0 12px 40px rgba(0,0,0,0.12)',
+    glow: '0 0 20px rgba(102, 126, 234, 0.3)'
+  },
+  blur: 'blur(20px)',
+  radius: {
+    sm: '8px',
+    md: '12px',
+    lg: '16px',
+    xl: '24px',
+    full: '9999px'
+  }
+};
 
 const NavBar = () => {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleLinkClick = () => {
-    // Closes the mobile menu after a link is clicked
-    if (isOpen) {
-      setIsOpen(false)
-    }
-  }
+    if (isOpen) setIsOpen(false);
+  };
 
   const navLinks = [
     { name: 'Home', href: '#' },
-    { name: 'About', href: '#about' },
-  ]
+    { name: 'Features', href: '#features' },
+    { name: 'About', href: '#about' }
+  ];
 
   return (
-    <nav className='fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md shadow-lg p-4 border-b border-gray-200 z-50'>
-      <div className='max-w-7xl mx-auto flex justify-between items-center'>
-        {/* Logo */}
-        <Link 
-          to="/dashboard" 
-          className='text-2xl sm:text-3xl font-sans text-gray-800 tracking-wider cursor-pointer transition-transform duration-300 transform hover:scale-105 font-extrabold'
-        >
-          ConvoSpace
-        </Link>
+    <nav 
+      className="fixed top-0 left-0 w-full z-50 transition-all duration-300"
+      style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.72)',
+        backdropFilter: DESIGN_TOKENS.blur,
+        WebkitBackdropFilter: DESIGN_TOKENS.blur,
+        borderBottom: `1px solid ${DESIGN_TOKENS.colors.border}`,
+        boxShadow: DESIGN_TOKENS.shadows.sm
+      }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <a 
+            href="/dashboard"
+            className="flex items-center gap-2 group cursor-pointer"
+          >
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105"
+              style={{
+                background: DESIGN_TOKENS.colors.gradient,
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+              }}
+            >
+              <Sparkles size={20} color="white" strokeWidth={2.5} />
+            </div>
+            <span 
+              className="text-xl font-semibold tracking-tight"
+              style={{ 
+                color: DESIGN_TOKENS.colors.text.primary,
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              }}
+            >
+              ConvoSpace
+            </span>
+          </a>
 
-        {/* Desktop Menu (Hidden on Mobile) */}
-        <ul className='hidden md:flex items-center space-x-8 lg:space-x-12 font-medium'>
-          {navLinks.map((link) => (
-            <li key={link.name} className='relative group'>
+          {/* Desktop Menu */}
+          <ul className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <li key={link.name}>
+                <a
+                  href={link.href}
+                  className="px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 hover:scale-105"
+                  style={{
+                    color: DESIGN_TOKENS.colors.text.secondary
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = DESIGN_TOKENS.colors.surfaceElevated;
+                    e.currentTarget.style.color = DESIGN_TOKENS.colors.text.primary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = DESIGN_TOKENS.colors.text.secondary;
+                  }}
+                >
+                  {link.name}
+                </a>
+              </li>
+            ))}
+            <li>
               <a
-                href={link.href}
-                // FIX: Used template literal for THEME_ACCENT_COLOR
-                className={`text-gray-700 hover:text-[${THEME_ACCENT_COLOR}] transition-all duration-300 cursor-pointer p-1`}
+                href="/subscriptions"
+                className="ml-2 px-5 py-2 rounded-full font-semibold text-sm text-white transition-all duration-200 hover:scale-105"
+                style={{
+                  background: DESIGN_TOKENS.colors.gradient,
+                  boxShadow: DESIGN_TOKENS.shadows.md
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = DESIGN_TOKENS.shadows.glow;
+                  e.currentTarget.style.transform = 'translateY(-1px) scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = DESIGN_TOKENS.shadows.md;
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                }}
               >
-                {link.name}
-                {/* FIX: Used template literal for THEME_ACCENT_COLOR */}
-                <span className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-[${THEME_ACCENT_COLOR}] group-hover:w-full transition-all duration-300`}></span>
+                Upgrade
               </a>
             </li>
-          ))}
-          <li>
-            <Link 
-              to='/subscriptions' 
-              // FIX: Used template literal for THEME_ACCENT_COLOR and BUTTON_HOVER_COLOR
-              className={`text-white bg-[${THEME_ACCENT_COLOR}] hover:bg-[${BUTTON_HOVER_COLOR}] px-4 py-2 rounded-lg font-bold transition-colors duration-300 cursor-pointer shadow-md`}
-            >
-              Subscriptions
-            </Link>
-          </li>
-        </ul>
+          </ul>
 
-        {/* Mobile Menu Button (Hidden on Desktop) */}
-        <button 
-          onClick={() => setIsOpen(!isOpen)} 
-          // FIX: Used template literal for THEME_ACCENT_COLOR
-          className={`md:hidden p-2 text-gray-700 hover:text-[${THEME_ACCENT_COLOR}] transition-all duration-300`}
-          aria-label="Toggle menu"
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
-
-      {/* Mobile Menu Content (Conditionally Rendered) */}
-      {isOpen && (
-        <div className='md:hidden mt-4 space-y-3 pb-2 transition-all duration-300 ease-in-out'>
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              onClick={handleLinkClick}
-              // FIX: Used template literal for THEME_ACCENT_COLOR
-              className={`block w-full text-lg text-gray-700 font-medium hover:text-[${THEME_ACCENT_COLOR}] hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200`}
-            >
-              {link.name}
-            </a>
-          ))}
-          <Link 
-            to='/subscriptions' 
-            onClick={handleLinkClick}
-            // FIX: Used template literal for THEME_ACCENT_COLOR and BUTTON_HOVER_COLOR
-            className={`block w-full text-center text-white bg-[${THEME_ACCENT_COLOR}] hover:bg-[${BUTTON_HOVER_COLOR}] px-4 py-2 rounded-lg font-bold transition-colors duration-300 shadow-md mt-4`}
+          {/* Mobile Menu Button */}
+          <button 
+            onClick={() => setIsOpen(!isOpen)} 
+            className="md:hidden p-2 rounded-lg transition-all duration-200"
+            style={{
+              color: DESIGN_TOKENS.colors.text.primary
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = DESIGN_TOKENS.colors.surfaceElevated;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            aria-label="Toggle menu"
           >
-            Subscriptions
-          </Link>
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
-      )}
-    </nav>
-  )
-}
 
-export default NavBar
+        {/* Mobile Menu */}
+        {isOpen && (
+          <div 
+            className="md:hidden pb-4 pt-2 px-2 animate-in fade-in slide-in-from-top-2 duration-300"
+            style={{
+              borderTop: `1px solid ${DESIGN_TOKENS.colors.border}`
+            }}
+          >
+            <div className="flex flex-col gap-1">
+              {navLinks.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  onClick={handleLinkClick}
+                  className="px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200"
+                  style={{
+                    color: DESIGN_TOKENS.colors.text.secondary
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = DESIGN_TOKENS.colors.surfaceElevated;
+                    e.currentTarget.style.color = DESIGN_TOKENS.colors.text.primary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = DESIGN_TOKENS.colors.text.secondary;
+                  }}
+                >
+                  {link.name}
+                </a>
+              ))}
+              <a
+                href="/subscriptions"
+                onClick={handleLinkClick}
+                className="mt-2 px-4 py-3 rounded-xl font-semibold text-sm text-white text-center transition-all duration-200"
+                style={{
+                  background: DESIGN_TOKENS.colors.gradient,
+                  boxShadow: DESIGN_TOKENS.shadows.md
+                }}
+              >
+                Upgrade
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+};
+
+export default NavBar;

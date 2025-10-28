@@ -1,68 +1,101 @@
-import React from 'react'
-import {
-  FaTwitter,
-  FaGithub,
-  FaLinkedin,
-  FaEnvelope,
-} from 'react-icons/fa' // Importing social media icons
+// Footer.jsx (UI Redesign - Premium Footer)
+import React from 'react';
+import { FaTwitter, FaGithub, FaLinkedin, FaEnvelope } from 'react-icons/fa';
+import { Sparkles } from 'lucide-react';
 
-// Existing theme variables
-const THEME_MAIN_BG = '#c3a6a0'
-const THEME_ACCENT_COLOR = '#A06C78'
-const THEME_TEXT_COLOR = '#333333'
+// Design Tokens (Using the consistent set)
+const DESIGN_TOKENS = {
+  colors: {
+    primary: '#007AFF',       // Brighter Blue
+    primaryDark: '#005ACF',
+    secondary: '#FF4500',     // Orange-red
+    tertiary: '#AF52DE',      // Purple
+    surface: '#FFFFFF',       // Pure white
+    surfaceElevated: '#F0F2F5', // Lightest grey (used as the main footer BG)
+    surfaceHighlight: '#E0E5EC', // Slightly darker
+    border: '#E0E0E0',        // Light border
+    text: {
+      primary: '#1C1C1E',     // Darkest grey
+      secondary: '#6A6A6A',   // Medium grey
+      placeholder: '#A0A0A0',
+      white: '#FFFFFF'
+    },
+    accentGradient: 'linear-gradient(45deg, #007AFF, #5AC8FA)',
+  },
+  shadows: {
+    sm: '0px 1px 3px rgba(0, 0, 0, 0.08)',
+  },
+  radius: {
+    lg: '20px',
+  }
+};
 
-// Data structure for the navigation links (inspired by the IncBlog image)
+const PRIMARY_COLOR = DESIGN_TOKENS.colors.primary;
+const PRIMARY_TEXT = DESIGN_TOKENS.colors.text.primary;
+const SECONDARY_TEXT = DESIGN_TOKENS.colors.text.secondary;
+const FOOTER_BG = DESIGN_TOKENS.colors.surfaceElevated;
+const BORDER_COLOR = DESIGN_TOKENS.colors.border;
+
+// Data structure for the navigation links (Adapted for ConvoSpace)
 const footerLinks = {
-  PLATFORM: ['Home', 'Create Pitch', 'Browse Startups'],
-  CATEGORIES: ['Technology', 'Health', 'Education', 'Finance'],
-  RESOURCES: ['About Us', 'Contact', 'Privacy Policy', 'Terms of Service'],
-}
+  PLATFORM: ['Home', 'Dashboard', 'Upgrade'],
+  TOOLS: ['Live Chat', 'AI Assistant', 'Notepad', 'File Sharing'],
+  COMPANY: ['About Us', 'Careers', 'Privacy Policy', 'Terms of Service'],
+};
 
 const Footer = () => {
-  // Retaining the original footer background and text color style
   return (
     <footer
-      className="w-full py-10 px-6 md:px-10 mt-9 rounded-2xl"
-      style={{ backgroundColor: '#d9bdb8', color: THEME_TEXT_COLOR }}
+      className="w-full py-10 px-4 md:px-10 mt-12"
+      style={{ 
+        backgroundColor: FOOTER_BG, 
+        color: PRIMARY_TEXT,
+        borderRadius: DESIGN_TOKENS.radius.lg 
+      }}
     >
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Main Content Area: Logo/Description and Link Columns */}
-        <div className="flex flex-col md:flex-row justify-between gap-10 border-b border-gray-400/50 pb-8">
+        <div 
+          className="flex flex-col md:flex-row justify-between gap-10 border-b pb-8"
+          style={{ borderColor: BORDER_COLOR }}
+        >
           
-          {/* 1. Logo and Description Column (based on IncBlog's left side) */}
-          <div className="md:w-1/3 space-y-3 text-center md:text-left">
-            {/* The text color for the title is still THEME_TEXT_COLOR ('#333333') as defined by the parent style. 
-               The original 'backgroundColor: #black' has been removed as it was likely an error and would clash. */}
-            <h2 className="text-2xl font-bold">
-              IncBlog {/* Changed to match the visual reference */}
-            </h2>
-            <p className="text-sm max-w-xs mx-auto md:mx-0 text-gray-700">
-              Share Your Tech Insights, Connect With Innovators {/* Changed description */}
+          {/* 1. Logo and Description Column */}
+          <div className="md:w-1/3 space-y-4 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start">
+              <Sparkles size={24} style={{ color: PRIMARY_COLOR }} className="mr-2" />
+              {/* Branding Fix */}
+              <h2 className="text-xl font-extrabold tracking-tight" style={{ color: PRIMARY_TEXT }}>
+                ConvoSpace
+              </h2>
+            </div>
+            
+            <p className="text-sm max-w-xs mx-auto md:mx-0" style={{ color: SECONDARY_TEXT }}>
+              Empowering modern collaboration with seamless video, AI, and integrated tools, all in one space.
             </p>
-            {/* Kept the original copyright structure for the top-left area */}
-            <p className="text-sm pt-4 text-gray-800">
-              © {new Date().getFullYear()} TechCloud. All rights reserved.
+            
+            <p className="text-xs pt-4" style={{ color: SECONDARY_TEXT }}>
+              © {new Date().getFullYear()} ConvoSpace. All rights reserved.
             </p>
           </div>
 
           {/* 2. Navigation Link Columns */}
-          <div className="flex-grow flex flex-wrap justify-center md:justify-end gap-x-12 gap-y-8">
+          <div className="flex-grow flex flex-wrap justify-around md:justify-end gap-x-12 gap-y-8">
             {Object.entries(footerLinks).map(([title, links]) => (
               <div key={title} className="w-1/3 min-w-[120px] md:w-auto text-center md:text-left">
-                {/* Titles are bolded and slightly darker for hierarchy */}
-                <h3 className="text-sm font-extrabold mb-3 uppercase tracking-wider text-gray-800">
+                {/* Titles are bolded and use the primary text color */}
+                <h3 className="text-sm font-bold mb-3 uppercase tracking-wider" style={{ color: PRIMARY_TEXT }}>
                   {title}
                 </h3>
                 <ul className="space-y-2">
                   {links.map((link) => (
                     <li key={link}>
-                      {/* Using the existing accent color for hover: #A06C78 */}
                       <a 
                         href="#" 
-                        className="text-sm text-gray-700 hover:underline transition"
-                        style={{ '--hover-color': THEME_ACCENT_COLOR }} // Using style variable for better Tailwind integration (if needed, otherwise inline style)
-                        onMouseEnter={(e) => e.currentTarget.style.color = THEME_ACCENT_COLOR}
-                        onMouseLeave={(e) => e.currentTarget.style.color = THEME_TEXT_COLOR}
+                        className="text-sm transition-colors duration-200"
+                        style={{ color: SECONDARY_TEXT }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = PRIMARY_COLOR}
+                        onMouseLeave={(e) => e.currentTarget.style.color = SECONDARY_TEXT}
                       >
                         {link}
                       </a>
@@ -76,20 +109,12 @@ const Footer = () => {
         
         {/* Bottom Social Media Row */}
         <div className="flex justify-center md:justify-end pt-5">
-          {/* Social media icons with hover color #A06C78 */}
+          {/* Social media icons with hover color based on PRIMARY_COLOR */}
           <div className="flex space-x-5 text-xl">
-            <a href="#" aria-label="Twitter" className="text-gray-600 hover:text-[#A06C78] transition">
-              <FaTwitter />
-            </a>
-            <a href="#" aria-label="GitHub" className="text-gray-600 hover:text-[#A06C78] transition">
-              <FaGithub />
-            </a>
-            <a href="#" aria-label="LinkedIn" className="text-gray-600 hover:text-[#A06C78] transition">
-              <FaLinkedin />
-            </a>
-            <a href="#" aria-label="Email" className="text-gray-600 hover:text-[#A06C78] transition">
-              <FaEnvelope />
-            </a>
+            <SocialIconLink icon={FaTwitter} label="Twitter" />
+            <SocialIconLink icon={FaGithub} label="GitHub" />
+            <SocialIconLink icon={FaLinkedin} label="LinkedIn" />
+            <SocialIconLink icon={FaEnvelope} label="Email" />
           </div>
         </div>
       </div>
@@ -97,4 +122,18 @@ const Footer = () => {
   )
 }
 
-export default Footer
+// Helper component for styled social icons
+const SocialIconLink = ({ icon: Icon, label }) => (
+    <a 
+        href="#" 
+        aria-label={label} 
+        className="transition-colors duration-200"
+        style={{ color: SECONDARY_TEXT }}
+        onMouseEnter={(e) => e.currentTarget.style.color = PRIMARY_COLOR}
+        onMouseLeave={(e) => e.currentTarget.style.color = SECONDARY_TEXT}
+    >
+        <Icon />
+    </a>
+);
+
+export default Footer;
