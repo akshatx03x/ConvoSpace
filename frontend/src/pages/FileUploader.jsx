@@ -12,11 +12,11 @@ import { deleteFile } from '../services/deleteFile.js';
 // Design Tokens (Imported for consistency)
 const DESIGN_TOKENS = {
   colors: {
-    primary: '#0066FF',       // Vibrant blue
+    primary: '#0066FF',       
     primaryHover: '#0052CC',
-    secondary: '#FF3B30',     // Accent red for delete
+    secondary: '#FF3B30',   
     surface: '#FFFFFF',
-    surfaceElevated: '#F5F5F7', // Light gray background
+    surfaceElevated: '#F5F5F7', 
     border: '#E5E5EA',
     text: {
       primary: '#1D1D1F',
