@@ -12,5 +12,8 @@ export const uploadFile = async (data, room) => {
     } catch (error)
     {
         console.log('Error while Uploading ',error.message);
+        if (error.response) {
+            console.log('Backend error message:', error.response.data.message);
+        }
     }
 }

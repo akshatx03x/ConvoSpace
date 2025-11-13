@@ -26,7 +26,7 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
     fileFilter: fileFilter
 });
 
@@ -34,10 +34,12 @@ import { deleteFile } from '../controllers/fileController.js';
 
 router.post('/upload', protect, upload.single('file'), (err, req, res, next) => {
     if (err instanceof multer.MulterError) {
+        console.log('Multer error:', err);
         if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ message: 'File too large. Maximum size is 5MB.' });
+            return res.status(400).json({ message: 'File too large. Maximum size is 20MB.' });
         }
     } else if (err) {
+        console.log('File upload error:', err.message);
         return res.status(400).json({ message: err.message });
     }
     next();

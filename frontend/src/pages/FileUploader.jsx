@@ -172,7 +172,7 @@ const FileUploader = ({ refreshKey, room }) => {
             {isUploading ? 'Uploading...' : 'Drag & Drop your file here'}
           </p>
           <p className="text-xs" style={{ color: SECONDARY_TEXT }}>
-            (Max: 5MB, PDF, DOCX, TXT)
+            (Max: 20MB, PDF, DOCX, TXT)
           </p>
 
           <div className="flex items-center space-x-2 w-full my-3">
