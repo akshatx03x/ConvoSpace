@@ -19,8 +19,9 @@ app.use(cookieParser());
 app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
-      "http://localhost:5173",
-      "https://convospace-mu.vercel.app"
+      "http://localhost:5174",
+      "https://convospace-mu.vercel.app",
+      "null"  // Allow requests from file:// protocol (local files)
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);

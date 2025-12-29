@@ -1,26 +1,30 @@
-import express from 'express';
+import express from "express";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 const router = express.Router();
 
-// POST endpoint to proxy requests to Gemini API
-router.post('/', async (req, res) => {
-  try {
-    const response = await fetch(process.env.GEMINI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(req.body)
-    });
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
+router.post("/", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required" });
     }
 
-    const data = await response.json();
-    res.json(data);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+    });
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+
+    res.status(200).json({ response: text });
   } catch (error) {
-    console.error('Error proxying to Gemini API:', error);
-    res.status(500).json({ error: 'Failed to fetch from Gemini API' });
+    console.error("Gemini Error:", error.message);
+    res.status(500).json({ error: "Gemini API failed" });
   }
 });
 
