@@ -1,10 +1,6 @@
 import express from "express";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = express.Router();
-
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 router.post("/", async (req, res) => {
   try {
@@ -14,17 +10,37 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Prompt is required" });
     }
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+    const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+    const response = await fetch(GEMINI_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: prompt }],
+          },
+        ],
+      }),
     });
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Gemini API Error:", data);
+      return res.status(500).json({ error: "Gemini API failed" });
+    }
+
+    const text =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No response from Gemini";
 
     res.status(200).json({ response: text });
   } catch (error) {
-    console.error("Gemini Error:", error.message);
-    res.status(500).json({ error: "Gemini API failed" });
+    console.error("Gemini REST Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
