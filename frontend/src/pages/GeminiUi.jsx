@@ -87,7 +87,10 @@ const GeminiChatUI = forwardRef((props, ref) => {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/gemini`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: apiQuery }] }] })
+        body: JSON.stringify({
+  prompt: apiQuery
+})
+
       });
 
       if (!response.ok) throw new Error('API request failed');
