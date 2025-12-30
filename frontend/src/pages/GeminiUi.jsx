@@ -70,42 +70,53 @@ const GeminiChatUI = forwardRef((props, ref) => {
     ask: handleAsk,
   }));
 
-  const handleAsk = async (apiQuery = query) => {
-    if (apiQuery.trim() === '') return;
-    setIsSearching(true);
-    setIsPreviewing(true);
-    setResponseText('');
-    setIsCopied(false);
-    setIsShared(false);
+ const handleAsk = async (apiQuery = query) => {
+  if (apiQuery.trim() === '') return;
+  
+  // 1. UI Preparation
+  setIsSearching(true);
+  setIsPreviewing(true);
+  setResponseText('');
+  setIsCopied(false);
+  setIsShared(false);
 
-    // Auto-scroll response area to top when starting a new query
-    if (responseAreaRef.current) {
-        responseAreaRef.current.scrollTop = 0;
+  if (responseAreaRef.current) {
+    responseAreaRef.current.scrollTop = 0;
+  }
+
+  try {
+    // 2. The API Call
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/gemini`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: apiQuery })
+    });
+
+    const data = await response.json();
+
+    // 3. Handle Errors
+    if (!response.ok) {
+      // If backend sends an error detail, show it; otherwise use default
+      const errorMsg = data.details || 'API request failed';
+      throw new Error(errorMsg);
     }
 
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/gemini`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-  prompt: apiQuery
-})
-
-      });
-
-      if (!response.ok) throw new Error('API request failed');
-
-      const data = await response.json();
-      const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response available';
-      setResponseText(answer);
-      setQuery(''); 
-    } catch (error) {
-      console.error(error);
-      setResponseText('Error: Unable to get response.');
-    } finally {
-      setIsSearching(false);
+    // 4. Update UI with the Text
+    // Note: We look for 'data.response' because our Backend now sends it that way.
+    if (data && data.response) {
+      setResponseText(data.response);
+      setQuery(''); // Clear the input field only on success
+    } else {
+      setResponseText('AI returned an empty response.');
     }
-  };
+
+  } catch (error) {
+    console.error("Frontend Gemini Error:", error);
+    setResponseText(`Error: ${error.message}`);
+  } finally {
+    setIsSearching(false);
+  }
+};
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
