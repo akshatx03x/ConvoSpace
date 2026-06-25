@@ -105,7 +105,6 @@ function Login() {
         <div className="w-full lg:w-1/2 p-8 sm:p-12 md:p-16 flex flex-col justify-center">
           
           <div className="flex items-center mb-6">
-            <Sparkles size={32} style={{ color: PRIMARY_COLOR }} className="mr-2" />
             <h1 className="text-3xl font-extrabold" style={{ color: PRIMARY_TEXT }}>
               ConvoSpace
             </h1>
