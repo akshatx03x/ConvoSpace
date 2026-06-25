@@ -64,17 +64,8 @@ const NavBar = () => {
             href="/dashboard"
             className="flex items-center gap-2 group cursor-pointer"
           >
-            <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105"
-              style={{
-                background: DESIGN_TOKENS.colors.gradient,
-                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
-              }}
-            >
-              <Sparkles size={20} color="white" strokeWidth={2.5} />
-            </div>
             <span 
-              className="text-xl font-semibold tracking-tight"
+              className="text-xl font-bold tracking-tight"
               style={{ 
                 color: DESIGN_TOKENS.colors.text.primary,
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
