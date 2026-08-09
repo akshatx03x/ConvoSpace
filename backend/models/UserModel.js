@@ -16,7 +16,7 @@ const UserSchema = new mongoose.Schema({
     },
     password:{
         type: String,
-        required: true,
+        required: false,
     },
     avatar:{
         type: String,
@@ -24,7 +24,11 @@ const UserSchema = new mongoose.Schema({
     phoneNumber:{
         type: String,
     },
-
+    googleId:{
+        type: String,
+        unique: true,
+        sparse: true,
+    },
 })
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);

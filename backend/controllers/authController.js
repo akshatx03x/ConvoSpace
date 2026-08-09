@@ -2,6 +2,10 @@ import User from "../models/UserModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { protect } from "../middlewares/auth.js";
+import { OAuth2Client } from 'google-auth-library';
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 
 // Generate JWT and set it as a cookie
 export const generateToken = (userId, res) => {
@@ -134,3 +138,102 @@ export const validateToken = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
+
+// Google Login
+export const googleLogin = async (req, res) => {
+    try {
+        const { idToken } = req.body || {};
+        if (!idToken) {
+            return res.status(400).json({ message: "ID Token is required" });
+        }
+
+        const clientId = process.env.GOOGLE_CLIENT_ID;
+
+        // Verify Google ID token cryptographically using google-auth-library
+        const ticket = await client.verifyIdToken({
+            idToken: idToken,
+            audience: clientId,
+        });
+        const payload = ticket.getPayload();
+        
+        if (!payload) {
+            return res.status(400).json({ message: "Invalid ID Token" });
+        }
+
+        const { email, sub: googleId, name, picture: avatar, email_verified } = payload;
+
+        if (!email_verified) {
+            return res.status(400).json({ message: "Google email is not verified" });
+        }
+
+        // Search for user by email
+        let user = await User.findOne({ email });
+
+        if (user) {
+            // Link account if googleId is not already linked
+            if (!user.googleId) {
+                // Ensure no other account is using this googleId
+                const existingGoogleUser = await User.findOne({ googleId });
+                if (existingGoogleUser) {
+                    return res.status(400).json({ message: "This Google account is already linked to another user." });
+                }
+                user.googleId = googleId;
+                if (!user.avatar) {
+                    user.avatar = avatar;
+                }
+                await user.save();
+            } else if (user.googleId !== googleId) {
+                return res.status(400).json({ message: "This email is associated with a different Google account." });
+            }
+        } else {
+            // Ensure no user has this googleId
+            const existingGoogleUser = await User.findOne({ googleId });
+            if (existingGoogleUser) {
+                return res.status(400).json({ message: "This Google account is already linked to another user." });
+            }
+
+            // Create new Google-only user
+            // Generate a unique username from email
+            const baseUserName = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+            let uniqueUserName = baseUserName;
+            let count = 1;
+            while (await User.findOne({ userName: uniqueUserName })) {
+                uniqueUserName = `${baseUserName}${count}`;
+                count++;
+            }
+
+            user = await User.create({
+                name,
+                userName: uniqueUserName,
+                email,
+                googleId,
+                avatar,
+            });
+        }
+
+        // Generate JWT token
+        let token;
+        try {
+            token = generateToken(user._id, res);
+        } catch (err) {
+            console.error("Token generation error:", err);
+            return res.status(500).json({ message: "Token generation failed" });
+        }
+
+        res.status(200).json({
+            message: "Login successful",
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                userName: user.userName,
+                email: user.email,
+                avatar: user.avatar,
+            },
+        });
+    } catch (error) {
+        console.error("Google Login verification error:", error);
+        res.status(401).json({ message: "Invalid Google token or verification failed" });
+    }
+};
+
