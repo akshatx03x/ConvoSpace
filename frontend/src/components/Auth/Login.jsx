@@ -88,7 +88,7 @@ function Login() {
         window.google.accounts.id.initialize({
           client_id: clientId,
           callback: handleGoogleLoginSuccess,
-          ux_mode: "popup"
+          use_fedcm_for_button: true
         });
         
         googleButtonRef.current.innerHTML = ""; // Clear any previous rendered buttons
