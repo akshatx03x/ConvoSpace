@@ -59,6 +59,7 @@ function Login() {
   const navigate = useNavigate();
 
   const googleButtonRef = useRef(null);
+  const isInitializedRef = useRef(false);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const isGoogleConfigured = clientId && clientId !== "placeholder_client_id";
 
@@ -82,17 +83,20 @@ function Login() {
   };
 
   useEffect(() => {
-    if (isGoogleConfigured && window.google && googleButtonRef.current) {
+    if (isGoogleConfigured && window.google && googleButtonRef.current && !isInitializedRef.current) {
       try {
         window.google.accounts.id.initialize({
           client_id: clientId,
           callback: handleGoogleLoginSuccess,
           ux_mode: "popup"
         });
+        
+        googleButtonRef.current.innerHTML = ""; // Clear any previous rendered buttons
         window.google.accounts.id.renderButton(
           googleButtonRef.current,
           { theme: "outline", size: "large", text: "continue_with", width: 320 }
         );
+        isInitializedRef.current = true;
       } catch (err) {
         console.error("Failed to initialize Google Sign-In:", err);
       }
