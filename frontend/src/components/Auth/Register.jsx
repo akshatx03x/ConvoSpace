@@ -1,5 +1,5 @@
 // Register.jsx (UI Redesign - Premium Registration Screen)
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Sparkles, Loader } from 'lucide-react';
@@ -57,7 +57,22 @@ const Register = () => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isServerWaking, setIsServerWaking] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkServerHealth = async () => {
+      setIsServerWaking(true);
+      try {
+        await axios.get(`${import.meta.env.VITE_API_BASE_URL}/health`);
+      } catch (err) {
+        console.warn("Failed to contact server on startup:", err);
+      } finally {
+        setIsServerWaking(false);
+      }
+    };
+    checkServerHealth();
+  }, []);
 
   // --- START: Functionality (UNCHANGED) ---
   const handleChange = (e) => {
@@ -118,6 +133,23 @@ const Register = () => {
           <p className="mb-8" style={{ color: SECONDARY_TEXT }}>
             Start your 30-day free trial today.
           </p>
+
+          {isServerWaking && (
+            <div 
+              className="p-4 mb-5 rounded-xl flex items-center space-x-3 text-sm animate-pulse"
+              style={{
+                backgroundColor: 'rgba(0, 102, 255, 0.1)',
+                border: `1px solid rgba(0, 102, 255, 0.2)`,
+                color: DESIGN_TOKENS.colors.primary,
+              }}
+            >
+              <Loader className="animate-spin w-5 h-5 flex-shrink-0" />
+              <div>
+                <span className="font-semibold block">Waking up backend server...</span>
+                <span className="opacity-80">Render's free tier spins down after inactivity. This may take up to a minute.</span>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

@@ -1,5 +1,5 @@
 // Login.jsx (UI Redesign - Premium Login Screen)
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaGoogle } from "react-icons/fa"; 
 import axios from "axios";
@@ -58,6 +58,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const googleButtonRef = useRef(null);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const isGoogleConfigured = clientId && clientId !== "placeholder_client_id";
 
@@ -81,15 +82,16 @@ function Login() {
   };
 
   useEffect(() => {
-    if (isGoogleConfigured && window.google) {
+    if (isGoogleConfigured && window.google && googleButtonRef.current) {
       try {
         window.google.accounts.id.initialize({
           client_id: clientId,
           callback: handleGoogleLoginSuccess,
+          ux_mode: "popup"
         });
         window.google.accounts.id.renderButton(
-          document.getElementById("google-signin-btn"),
-          { theme: "outline", size: "large", width: "100%", text: "continue_with" }
+          googleButtonRef.current,
+          { theme: "outline", size: "large", text: "continue_with", width: 320 }
         );
       } catch (err) {
         console.error("Failed to initialize Google Sign-In:", err);
@@ -163,7 +165,7 @@ function Login() {
           {/* Social Auth Button: Continue with Google */}
           <div className="flex justify-center w-full mb-6">
             {isGoogleConfigured ? (
-              <div id="google-signin-btn" className="w-full flex justify-center"></div>
+              <div ref={googleButtonRef} className="w-full flex justify-center"></div>
             ) : (
               <button 
                 type="button"
