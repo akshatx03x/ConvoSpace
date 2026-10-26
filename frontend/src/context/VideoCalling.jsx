@@ -10,7 +10,7 @@ import Footer from '../components/Extras/Footer.jsx';
 import FileUploader from '../pages/FileUploader.jsx';
 import Notepad from '../pages/Notepad.jsx';
 import Chats from '../pages/Chats.jsx';
-import { Zap, Mic, MicOff, Video, VideoOff, PhoneOff, Users, Clock } from 'lucide-react';
+import { Zap, Mic, MicOff, Video, VideoOff, PhoneOff, Users, Clock, Copy, Check, ShieldCheck } from 'lucide-react';
 
 // Design Tokens from NavBar.jsx (unchanged)
 const DESIGN_TOKENS = {
@@ -71,14 +71,10 @@ const ElevatedCard = ({ children, className = '', style = {} }) => (
 const VideoCalling = () => {
   const getInitialRoom = () => {
     try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlRoom = urlParams.get('room');
-      if (urlRoom && /^[A-F0-9]{5}$/i.test(urlRoom)) {
-        return urlRoom.toUpperCase();
-      }
+      // Prioritize private in-memory tab session storage only
       const savedRoom = sessionStorage.getItem('convo_active_room');
-      if (savedRoom && /^[A-F0-9]{5}$/i.test(savedRoom)) {
-        return savedRoom.toUpperCase();
+      if (savedRoom && /^[A-Z0-9]{4,10}$/i.test(savedRoom.trim())) {
+        return savedRoom.trim().toUpperCase();
       }
     } catch (e) {
       // fallback
@@ -99,21 +95,50 @@ const VideoCalling = () => {
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [joinError, setJoinError] = useState("");
   const [mediaStarted, setMediaStarted] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const localVideoRef = useRef();
   const socket = useSocket();
   const myStreamRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
 
-  // --- START: Functionality (Omitted for brevity, unchanged) ---
+  // Security: Purge any legacy room parameters from URL and browser history on load
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('room')) {
+        url.searchParams.delete('room');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const handleCopyCode = (codeToCopy) => {
+    if (!codeToCopy) return;
+    navigator.clipboard.writeText(codeToCopy).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      // fallback
+    });
+  };
+
+  // Generate unambiguous alphanumeric room code (32-character set without 0/O, 1/I)
   const generateRoomCode = () => {
-    let code;
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let code = '';
     do {
-      code = Math.random().toString(16).substring(2, 7).toUpperCase();
+      code = '';
+      for (let i = 0; i < 5; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
     } while (code === lastGenerated);
     setLastGenerated(code);
     setGeneratedRoom(code);
     setRoom(code);
+    setJoinError("");
   };
 
   const handleCreateRoom = (e) => {
@@ -122,10 +147,12 @@ const VideoCalling = () => {
       setJoinError("Connection not ready. Please wait...");
       return;
     }
-    const user = JSON.parse(localStorage.getItem('user'));
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
     const email = user?.email;
     if (generatedRoom) {
       console.log('Creating room:', generatedRoom);
+      setJoinError("");
       socket.emit('room:join', { email, room: generatedRoom });
     }
   };
@@ -136,16 +163,17 @@ const VideoCalling = () => {
       setJoinError("Connection not ready. Please wait...");
       return;
     }
-    const user = JSON.parse(localStorage.getItem('user'));
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
     const email = user?.email;
-    if (joinRoom) {
-      if (/^[A-F0-9]{5}$/.test(joinRoom.toUpperCase())) {
-        console.log('Joining room:', joinRoom.toUpperCase());
-        setRoom(joinRoom.toUpperCase());
-        socket.emit('room:join', { email, room: joinRoom.toUpperCase() });
-      } else {
-        setJoinError("Enter a valid 5-character room code.");
-      }
+    const sanitizedCode = joinRoom.trim().toUpperCase();
+    if (sanitizedCode && /^[A-Z0-9]{4,10}$/.test(sanitizedCode)) {
+      console.log('Joining room:', sanitizedCode);
+      setRoom(sanitizedCode);
+      setJoinError("");
+      socket.emit('room:join', { email, room: sanitizedCode });
+    } else {
+      setJoinError("Please enter a valid room code (4-8 alphanumeric characters).");
     }
   };
 
@@ -156,10 +184,13 @@ const VideoCalling = () => {
     setIsJoined(true);
     setJoinError("");
     try {
+      // Store in private tab session memory only - NEVER in the URL
       sessionStorage.setItem('convo_active_room', joinedRoom);
-      const url = new URL(window.location);
-      url.searchParams.set('room', joinedRoom);
-      window.history.replaceState({ room: joinedRoom }, '', url.toString());
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('room')) {
+        url.searchParams.delete('room');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      }
     } catch (e) {
       console.error('Failed to store active room in session', e);
     }
@@ -172,27 +203,30 @@ const VideoCalling = () => {
     setIsJoined(false);
     try {
       sessionStorage.removeItem('convo_active_room');
-      const url = new URL(window.location);
-      url.searchParams.delete('room');
-      window.history.replaceState({}, '', url.toString());
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('room')) {
+        url.searchParams.delete('room');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      }
     } catch (e) {
       // fallback
     }
   }, []);
 
-  // Auto-rejoin meeting on page refresh or direct URL navigation with room
+  // Auto-rejoin meeting on page refresh using secure tab-isolated session storage
   useEffect(() => {
     if (!socket || isJoined) return;
 
-    const savedRoom = sessionStorage.getItem('convo_active_room') || new URLSearchParams(window.location.search).get('room');
-    if (savedRoom && /^[A-F0-9]{5}$/i.test(savedRoom)) {
+    const savedRoom = sessionStorage.getItem('convo_active_room');
+    if (savedRoom && /^[A-Z0-9]{4,10}$/i.test(savedRoom.trim())) {
       const userStr = localStorage.getItem('user');
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
           if (user?.email) {
-            console.log('🔄 Reconnecting to meeting room on refresh:', savedRoom.toUpperCase());
-            socket.emit('room:join', { email: user.email, room: savedRoom.toUpperCase() });
+            const cleanRoom = savedRoom.trim().toUpperCase();
+            console.log('🔄 Reconnecting to meeting room on refresh:', cleanRoom);
+            socket.emit('room:join', { email: user.email, room: cleanRoom });
           }
         } catch (e) {
           console.error('Error rejoining room on refresh', e);
@@ -446,9 +480,11 @@ const VideoCalling = () => {
     setIsJoined(false);
     try {
       sessionStorage.removeItem('convo_active_room');
-      const url = new URL(window.location);
-      url.searchParams.delete('room');
-      window.history.replaceState({}, '', url.toString());
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('room')) {
+        url.searchParams.delete('room');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      }
 
       if (myStreamRef.current) {
         myStreamRef.current.getTracks().forEach(track => track.stop());
@@ -534,10 +570,38 @@ const VideoCalling = () => {
                 </button>
                 {generatedRoom && (
                   <form onSubmit={handleCreateRoom} className="flex flex-col space-y-3 mt-4">
-                    <p className="text-sm font-medium" style={{ color: SECONDARY_TEXT }}>
-                      Share this code: <span className="font-bold text-lg" style={{ color: PRIMARY_TEXT }}>{generatedRoom}</span>
-                    </p>
-                    {/* FIX 1: Apply ACCENT_GRADIENT theme to the "Start Meeting" button */}
+                    <div
+                      className="flex items-center justify-between p-3 rounded-xl border"
+                      style={{ backgroundColor: SURFACE_BG, borderColor: BORDER_COLOR }}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: SECONDARY_TEXT }}>Code:</span>
+                        <span className="font-mono font-bold text-lg tracking-widest" style={{ color: PRIMARY_TEXT }}>{generatedRoom}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCode(generatedRoom)}
+                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border"
+                        style={{
+                          borderColor: BORDER_COLOR,
+                          backgroundColor: copied ? '#ECFDF5' : ELEVATED_BG,
+                          color: copied ? '#059669' : PRIMARY_TEXT
+                        }}
+                        title="Copy room code"
+                      >
+                        {copied ? (
+                          <>
+                            <Check size={14} className="text-emerald-600" />
+                            <span className="text-emerald-700 font-medium">Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} style={{ color: SECONDARY_TEXT }} />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                     <button
                       className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 hover:scale-[1.01]"
                       style={{ background: ACCENT_GRADIENT, boxShadow: DESIGN_TOKENS.shadows.md }}
@@ -566,20 +630,24 @@ const VideoCalling = () => {
                       outline: 'none',
                       '--tw-ring-color': DESIGN_TOKENS.colors.primary
                     }}
-                    placeholder="Enter 5-Character Room Code (e.g., A1B2C)"
+                    placeholder="Enter Room Code (e.g., K9X2P)"
                     value={joinRoom}
-                    onChange={(e) => setJoinRoom(e.target.value.toUpperCase())}
-                    maxLength={5}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                      setJoinRoom(val);
+                      if (joinError) setJoinError('');
+                    }}
+                    maxLength={8}
                   />
                   <button
-                    className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 hover:scale-[1.01]"
+                    className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ background: ACCENT_GRADIENT, boxShadow: DESIGN_TOKENS.shadows.md }}
                     type="submit"
-                    disabled={!joinRoom || joinRoom.length !== 5}
+                    disabled={!joinRoom.trim() || joinRoom.trim().length < 4}
                   >
                     Join Meeting
                   </button>
-                  {joinError && <p className="text-red-500 text-sm font-medium mt-2">{joinError}</p>}
+                  {joinError && <p className="text-red-500 text-sm font-medium mt-1">{joinError}</p>}
                 </form>
               </div>
             </div>
@@ -651,9 +719,40 @@ const VideoCalling = () => {
         <div className="flex flex-col lg:flex-row gap-6 min-h-[540px] lg:h-[78vh]">
           {/* Main Video Panel (Large View) */}
           <ElevatedCard className="flex-1 p-4 flex flex-col overflow-hidden">
-            <h2 className="text-2xl font-extrabold mb-4" style={{ color: PRIMARY_TEXT }}>
-              Room: <span className="font-semibold text-lg" style={{ color: DESIGN_TOKENS.colors.primary }}>{room}</span>
-            </h2>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div className="flex items-center space-x-3">
+                <h2 className="text-2xl font-extrabold" style={{ color: PRIMARY_TEXT }}>
+                  Room: <span className="font-semibold text-lg font-mono tracking-wider" style={{ color: DESIGN_TOKENS.colors.primary }}>{room}</span>
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => handleCopyCode(room)}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all border"
+                  style={{
+                    borderColor: BORDER_COLOR,
+                    backgroundColor: copied ? '#ECFDF5' : SURFACE_BG,
+                    color: copied ? '#059669' : PRIMARY_TEXT
+                  }}
+                  title="Copy private room code"
+                >
+                  {copied ? (
+                    <>
+                      <Check size={14} className="text-emerald-600" />
+                      <span className="text-emerald-700 font-medium">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} style={{ color: SECONDARY_TEXT }} />
+                      <span>Copy Code</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="flex items-center space-x-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <ShieldCheck size={14} className="text-emerald-600" />
+                <span>Private Session &bull; URL Hidden</span>
+              </div>
+            </div>
 
             {/* FIX: Video Grid Wrapper - Handles the fixed height and overflow scroll */}
             <div
