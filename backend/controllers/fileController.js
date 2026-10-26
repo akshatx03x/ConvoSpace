@@ -22,6 +22,12 @@ export const uploadFile = async (req, res) => {
         });
 
         await newFile.save();
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(room).emit('file:shared', { file: newFile });
+        }
+
         res.status(201).json({ message: 'File uploaded successfully', file: newFile });
     } catch (error) {
         console.error('Upload error:', error);
@@ -74,12 +80,20 @@ export const deleteFile = async (req, res) => {
             return res.status(404).json({ message: 'File not found' });
         }
 
+        const room = file.room;
+
         // Delete file from disk
         if (fs.existsSync(file.path)) {
             fs.unlinkSync(file.path);
         }
 
         await File.findByIdAndDelete(req.params.fileId);
+
+        const io = req.app.get('io');
+        if (io && room) {
+            io.to(room).emit('file:deleted', { fileId: req.params.fileId });
+        }
+
         res.json({ message: 'File deleted successfully' });
     } catch (error) {
         console.error('Delete file error:', error);

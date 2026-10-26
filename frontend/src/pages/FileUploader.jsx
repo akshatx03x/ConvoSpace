@@ -49,19 +49,34 @@ const FileUploader = ({ refreshKey, room }) => {
   const fileInputRef = useRef();
   const [file, setFile] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [isDragging, setIsDragging] = useState(false); // Using this state visually
+  const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
 
   const onUploadClick = () => {
-    fileInputRef.current.click();
-  }
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileSelect = (selectedFile) => {
+    setUploadError(null);
+    if (!selectedFile) return;
+
+    if (selectedFile.size > 20 * 1024 * 1024) {
+      setUploadError('File is too large. Maximum size is 20MB.');
+      return;
+    }
+
+    setFile(selectedFile);
+  };
 
   // --- START: Existing Functionality (REFACTOR: Consolidated file fetching) ---
 
   const fetchFiles = useCallback(async () => {
     if (room) {
       const data = await getFiles(room);
-      setUploadedFiles(data.files || []);
+      setUploadedFiles(data?.files || []);
     }
   }, [room]);
 
@@ -73,7 +88,7 @@ const FileUploader = ({ refreshKey, room }) => {
     if (!socket) return;
 
     // Listeners to refresh file list on events
-    const handleFileEvent = (data) => {
+    const handleFileEvent = () => {
       fetchFiles();
     };
     
@@ -91,24 +106,30 @@ const FileUploader = ({ refreshKey, room }) => {
     const upload = async () => {
       if (file && room) {
         setIsUploading(true);
+        setUploadError(null);
+
         const data = new FormData();
+        data.append('room', room);
         data.append('name', file.name);
         data.append('file', file);
-        data.append('room', room);
 
         try {
-          await uploadFile(data, room);
+          await uploadFile(data);
           fetchFiles(); // Refresh file list
         } catch (error) {
           console.error("Upload failed:", error);
+          setUploadError(error.message || 'File upload failed. Please try again.');
         } finally {
           setIsUploading(false);
           setFile(null); // Clear file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
         }
       }
-    }
+    };
     upload();
-  }, [file, room, fetchFiles])
+  }, [file, room, fetchFiles]);
 
   // Delete Handler
   const handleDelete = useCallback(async (fileId) => {
@@ -120,7 +141,27 @@ const FileUploader = ({ refreshKey, room }) => {
     }
   }, [fetchFiles]);
 
-  // --- END: Existing Functionality ---
+  // Drag and drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
+  };
 
   // Enhanced Drop Zone Classes
   const dropZoneClasses = `
@@ -156,9 +197,25 @@ const FileUploader = ({ refreshKey, room }) => {
           </span>
         </div>
 
+        {/* Error notification banner */}
+        {uploadError && (
+          <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 flex items-start justify-between text-xs text-red-700">
+            <span>{uploadError}</span>
+            <button
+              onClick={() => setUploadError(null)}
+              className="ml-2 font-bold hover:text-red-900"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* File Drop Zone Area */}
         <div 
           className={dropZoneClasses}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
           style={{
             borderColor: isDragging ? PRIMARY_COLOR : BORDER_COLOR,
             backgroundColor: isDragging ? ELEVATED_BG : SURFACE_BG,
@@ -172,7 +229,7 @@ const FileUploader = ({ refreshKey, room }) => {
             {isUploading ? 'Uploading...' : 'Drag & Drop your file here'}
           </p>
           <p className="text-xs" style={{ color: SECONDARY_TEXT }}>
-            (Max: 20MB, PDF, DOCX, TXT)
+            (Max: 20MB — PDF, Word, TXT, Images)
           </p>
 
           <div className="flex items-center space-x-2 w-full my-3">
@@ -183,6 +240,7 @@ const FileUploader = ({ refreshKey, room }) => {
 
           {/* Select File Button */}
           <button 
+            type="button"
             onClick={onUploadClick}
             disabled={isUploading}
             className="mt-2 px-6 py-2 rounded-full text-sm font-semibold shadow-md transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98] focus:outline-none disabled:opacity-60"
@@ -196,11 +254,14 @@ const FileUploader = ({ refreshKey, room }) => {
 
           <input
             ref={fileInputRef}
-            style={{display:"none"}}
+            style={{ display: "none" }}
             type="file"
             id="file-upload"
+            accept=".pdf,.docx,.doc,.txt,.md,.csv,.jpg,.jpeg,.png,.webp,.gif"
             onChange={(e) => {
-              if(e.target.files.length > 0) setFile(e.target.files[0]);
+              if (e.target.files && e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+              }
             }}
           />
         </div>
