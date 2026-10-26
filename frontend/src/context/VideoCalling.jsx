@@ -602,18 +602,18 @@ const VideoCalling = () => {
       >
         <div className="max-w-7xl mx-auto">
           {/* Main Join Panel (Responsive Layout) */}
-          <ElevatedCard className="flex flex-col lg:flex-row mb-12 lg:h-[580px] p-0 overflow-hidden hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300">
+          <ElevatedCard className="flex flex-col lg:flex-row mb-12 min-h-[580px] h-auto p-0 overflow-hidden hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300">
             {/* Left Content Area (Forms) */}
-            <div className="w-full lg:w-3/5 p-8 sm:p-12 flex flex-col justify-center">
+            <div className="w-full lg:w-3/5 p-6 sm:p-10 flex flex-col justify-center">
               <h1 className="text-4xl sm:text-5xl font-extrabold mb-2" style={{ color: PRIMARY_TEXT }}>
                 Start a New Session
               </h1>
-              <p className="text-md sm:text-lg mb-8" style={{ color: SECONDARY_TEXT }}>
+              <p className="text-md sm:text-lg mb-6" style={{ color: SECONDARY_TEXT }}>
                 Create a secure room or join an existing one in seconds.
               </p>
 
               {/* Create Room Section */}
-              <div className="mb-8 p-6 rounded-xl" style={{ backgroundColor: ELEVATED_BG }}>
+              <div className="mb-6 p-5 sm:p-6 rounded-xl" style={{ backgroundColor: ELEVATED_BG }}>
                 <h2 className="text-xl font-bold mb-4 flex items-center" style={{ color: PRIMARY_TEXT }}>
                   <Zap size={18} style={{ color: DESIGN_TOKENS.colors.primary }} className="mr-2" />
                   Create Instant Room
@@ -671,7 +671,7 @@ const VideoCalling = () => {
               </div>
 
               {/* Join Room Section */}
-              <div className="p-6 rounded-xl" style={{ backgroundColor: ELEVATED_BG }}>
+              <div className="p-5 sm:p-6 rounded-xl" style={{ backgroundColor: ELEVATED_BG }}>
                 <h2 className="text-xl font-bold mb-4 flex items-center" style={{ color: PRIMARY_TEXT }}>
                   <Users size={18} style={{ color: DESIGN_TOKENS.colors.primary }} className="mr-2" />
                   Join Existing Room
@@ -711,7 +711,7 @@ const VideoCalling = () => {
 
             {/* Right Promotional Area (Gradient) */}
             <div
-              className="w-full lg:w-2/5 p-12 flex flex-col justify-between rounded-b-xl lg:rounded-r-xl lg:rounded-bl-none min-h-[200px] lg:min-h-full"
+              className="w-full lg:w-2/5 p-8 sm:p-12 flex flex-col justify-between rounded-b-xl lg:rounded-r-xl lg:rounded-bl-none min-h-[280px] self-stretch"
               style={{ background: ACCENT_GRADIENT, boxShadow: DESIGN_TOKENS.shadows.lg }}
             >
               <h3 className="text-3xl font-extrabold text-white mb-4">ConvoSpace Advantage</h3>
