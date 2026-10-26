@@ -159,7 +159,6 @@ const Features = () => {
               borderColor: 'rgba(0, 122, 255, 0.2)',
             }}
           >
-            <Sparkles size={14} className="text-[#007AFF]" />
             Everything You Need For Collaborative Meetings
           </div>
 
