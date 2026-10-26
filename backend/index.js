@@ -78,6 +78,7 @@ const emailtoSocketIdMap = new Map();
 const socketIdToEmailMap = new Map();
 const roomUsers = new Map(); // Track users per room
 const activeRooms = new Set(); // Track active rooms/meetings
+const roomCleanupTimers = new Map(); // Grace period timers for empty rooms
 
 io.on("connection", async (socket) => {
   console.log('Socket connected:', socket.id);
@@ -107,20 +108,33 @@ io.on("connection", async (socket) => {
     const { room } = data;
     const email = socket.user.email;
 
+    // Cancel pending room cleanup if user is rejoining (e.g. page refresh)
+    if (roomCleanupTimers.has(room)) {
+      clearTimeout(roomCleanupTimers.get(room));
+      roomCleanupTimers.delete(room);
+      console.log(`Cancelled room cleanup timer for room: ${room}`);
+    }
+
     // Check if socket is already in the room
     if (roomUsers.has(room) && roomUsers.get(room).has(socket.id)) {
       io.to(socket.id).emit("room:join", { email, room });
       return;
     }
 
-    // Check if another socket with same email is in the room
+    // Handle user reconnect / page refresh: replace old socket for this user
     if (roomUsers.has(room)) {
       const usersInRoom = roomUsers.get(room);
-      for (const userId of usersInRoom) {
-        const userEmail = socketIdToEmailMap.get(userId);
-        if (userEmail === email) {
-          io.to(socket.id).emit("room:join:error", { message: "You are already in this room." });
-          return;
+      for (const oldUserId of Array.from(usersInRoom)) {
+        const userEmail = socketIdToEmailMap.get(oldUserId);
+        if (userEmail === email && oldUserId !== socket.id) {
+          console.log(`User ${email} reconnected: replacing old socket ${oldUserId} with ${socket.id}`);
+          usersInRoom.delete(oldUserId);
+          socket.to(room).emit('user:left', { id: oldUserId });
+          socketIdToEmailMap.delete(oldUserId);
+          const oldSocket = io.sockets.sockets.get(oldUserId);
+          if (oldSocket) {
+            oldSocket.leave(room);
+          }
         }
       }
     }
@@ -166,30 +180,43 @@ io.on("connection", async (socket) => {
         users.delete(socket.id);
         socket.to(room).emit('user:left', { id: socket.id });
         console.log(`Notified room ${room} that socket ${socket.id} left`);
+        
         if (users.size === 0) {
-          roomUsers.delete(room);
-          activeRooms.delete(room);
-          try {
-            const mockReq = {
-              query: { room },
-              app: app
-            };
-            const mockRes = {
-              status: (code) => ({
-                json: (data) => {
-                  if (code === 200) {
-                    console.log(`All files deleted for empty room: ${room}`);
-                  } else {
-                    console.error(`Failed to delete files for room: ${room}`, data);
-                  }
-                }
-              })
-            };
-            await deleteAllFiles(mockReq, mockRes);
-            io.to(room).emit('clear:notes');
-          } catch (error) {
-            console.error(`Error deleting files for room ${room}:`, error);
+          // Grace period for page refresh / reconnection before destroying room
+          if (roomCleanupTimers.has(room)) {
+            clearTimeout(roomCleanupTimers.get(room));
           }
+          const timer = setTimeout(async () => {
+            roomCleanupTimers.delete(room);
+            const currentUsers = roomUsers.get(room);
+            if (!currentUsers || currentUsers.size === 0) {
+              console.log(`Grace period expired: destroying empty room ${room}`);
+              roomUsers.delete(room);
+              activeRooms.delete(room);
+              try {
+                const mockReq = {
+                  query: { room },
+                  app: app
+                };
+                const mockRes = {
+                  status: (code) => ({
+                    json: (data) => {
+                      if (code === 200) {
+                        console.log(`All files deleted for empty room: ${room}`);
+                      } else {
+                        console.error(`Failed to delete files for room: ${room}`, data);
+                      }
+                    }
+                  })
+                };
+                await deleteAllFiles(mockReq, mockRes);
+                io.to(room).emit('clear:notes');
+              } catch (error) {
+                console.error(`Error deleting files for room ${room}:`, error);
+              }
+            }
+          }, 60000); // 60s grace period
+          roomCleanupTimers.set(room, timer);
         }
         break;
       }

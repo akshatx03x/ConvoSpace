@@ -1,7 +1,6 @@
 // Footer.jsx (UI Redesign - Premium Footer)
 import React from 'react';
 import { FaTwitter, FaGithub, FaLinkedin, FaEnvelope } from 'react-icons/fa';
-import { Sparkles } from 'lucide-react';
 
 // Design Tokens (Using the consistent set)
 const DESIGN_TOKENS = {
@@ -63,11 +62,10 @@ const Footer = () => {
           {/* 1. Logo and Description Column */}
           <div className="md:w-1/3 space-y-4 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start">
-              <Sparkles size={24} style={{ color: PRIMARY_COLOR }} className="mr-2" />
               {/* Branding Fix */}
-              <h2 className="text-xl font-extrabold tracking-tight" style={{ color: PRIMARY_TEXT }}>
+              <h1 className="text-5xl font-extrabold tracking-tight" style={{ color: PRIMARY_TEXT }}>
                 ConvoSpace
-              </h2>
+              </h1>
             </div>
             
             <p className="text-sm max-w-xs mx-auto md:mx-0" style={{ color: SECONDARY_TEXT }}>

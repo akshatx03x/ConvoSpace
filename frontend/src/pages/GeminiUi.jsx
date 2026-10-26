@@ -1,122 +1,151 @@
-// GeminiChatUI.jsx (FINAL CONVOSPACE BRANDING & FIXED HEIGHT RESPONSE)
+// GeminiChatUI.jsx (Redesigned to perfectly match Group Chat UI & experience)
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Bot, Send, Copy, Eye, EyeOff, Loader, Sparkles, Share2, CornerDownLeft } from 'lucide-react';
+import { useSocket } from '../context/SocketProvider';
+import { toast } from 'react-toastify';
+import { Bot, Send, Copy, Check, Share2, Trash2, Loader2, MessageSquare } from 'lucide-react';
 
-// Design Tokens (Using the consistent set)
+// Design Tokens (Identical to Chats.jsx for 100% visual harmony)
 const DESIGN_TOKENS = {
   colors: {
-    primary: '#007AFF',       // Brighter Blue
-    primaryDark: '#005ACF',
-    secondary: '#FF4500',     // Orange-red
-    tertiary: '#AF52DE',      // Purple
-    surface: '#FFFFFF',       // Pure white
-    surfaceElevated: '#F0F2F5', // Lightest grey
-    surfaceHighlight: '#E0E5EC', // Slightly darker for active states
-    border: '#E0E0E0',        // Light border
+    primary: '#0066FF',       // Vibrant blue
+    primaryHover: '#0052CC',
+    secondary: '#FF3B30',     // Accent red
+    surface: '#FFFFFF',
+    surfaceElevated: '#F5F5F7', // Light gray background for contrast
+    border: '#E5E5EA',
     text: {
-      primary: '#1C1C1E',     // Darkest grey
-      secondary: '#6A6A6A',   // Medium grey
-      placeholder: '#A0A0A0',
-      white: '#FFFFFF'
+      primary: '#1D1D1F',
+      secondary: '#86868B',
+      tertiary: '#AEAEB2'
     },
-    accentGradient: 'linear-gradient(45deg, #007AFF, #5AC8FA)',
-    aiGradient: 'linear-gradient(90deg, #AF52DE, #FF00FF)',
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
   },
   shadows: {
-    sm: '0px 1px 3px rgba(0, 0, 0, 0.08)',
-    md: '0px 4px 12px rgba(0, 0, 0, 0.12)',
-    lg: '0px 8px 24px rgba(0, 0, 0, 0.16)',
-    input: '0px 2px 8px rgba(0, 0, 0, 0.1)'
+    sm: '0 1px 3px rgba(0,0,0,0.08)',
+    md: '0 4px 12px rgba(0,0,0,0.1)',
   },
   radius: {
-    sm: '8px',
-    md: '12px',
-    lg: '20px',
-    xl: '30px',
-    full: '9999px',
-  },
-  animation: {
-    ease: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+    lg: '16px',
+    xl: '24px',
   }
 };
 
-const PRIMARY_COLOR = DESIGN_TOKENS.colors.primary;
+const ACCENT_COLOR = DESIGN_TOKENS.colors.primary;
 const PRIMARY_TEXT = DESIGN_TOKENS.colors.text.primary;
 const SECONDARY_TEXT = DESIGN_TOKENS.colors.text.secondary;
-const PLACEHOLDER_TEXT = DESIGN_TOKENS.colors.text.placeholder;
-const WHITE_TEXT = DESIGN_TOKENS.colors.text.white;
-const SURFACE_BG = DESIGN_TOKENS.colors.surface;
 const ELEVATED_BG = DESIGN_TOKENS.colors.surfaceElevated;
-const HIGHLIGHT_BG = DESIGN_TOKENS.colors.surfaceHighlight;
+const SURFACE_BG = DESIGN_TOKENS.colors.surface;
 const BORDER_COLOR = DESIGN_TOKENS.colors.border;
-const AI_GRADIENT = DESIGN_TOKENS.colors.aiGradient;
-const ACCENT_GRADIENT = DESIGN_TOKENS.colors.accentGradient;
+const ACCENT_GRADIENT = DESIGN_TOKENS.colors.gradient;
 
-// Fixed height for the response area content
-const MAX_RESPONSE_HEIGHT = '350px'; 
+const QUICK_PROMPTS = [
+  { label: 'Explain a concept', prefix: 'Explain in simple terms with examples: ', text: 'Explain how this works in simple terms with examples: ' },
+  { label: 'Compare options', prefix: 'Compare the pros and cons of: ', text: 'Compare the pros and cons of: ' },
+  { label: 'Brainstorm solutions', prefix: 'Give creative ideas and practical solutions for: ', text: 'Brainstorm creative ideas and practical solutions for: ' },
+  { label: 'Best practices', prefix: 'What are the recommended best practices and key principles for: ', text: 'What are the industry best practices and key principles for: ' },
+];
 
-const GeminiChatUI = forwardRef((props, ref) => {
+const GeminiChatUI = forwardRef(({ room }, ref) => {
+  const socket = useSocket();
+  const [messages, setMessages] = useState([]);
   const [query, setQuery] = useState('');
-  const [responseText, setResponseText] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
-  const [isShared, setIsShared] = useState(false);
-  const [isPreviewing, setIsPreviewing] = useState(true);
-  const [isMarkdownLoaded, setIsMarkdownLoaded] = useState(false);
-  const textareaRef = useRef(null);
-  const responseAreaRef = useRef(null); // Ref for the scrollable content area
+  const [copiedId, setCopiedId] = useState(null);
+  const [sharedId, setSharedId] = useState(null);
+  const [isMarkdownLoaded, setIsMarkdownLoaded] = useState(!!window.markdownit);
+
+  const messagesContainerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Markdown-it script loader for rich responses
+  useEffect(() => {
+    if (window.markdownit) {
+      setIsMarkdownLoaded(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js';
+    script.onload = () => setIsMarkdownLoaded(true);
+    document.head.appendChild(script);
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
+
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isSearching]);
+
+  const handleAsk = async (promptText = query) => {
+    const textToSend = promptText.trim();
+    if (!textToSend || isSearching) return;
+
+    const userMessageId = `user-${Date.now()}`;
+    const userMessage = {
+      id: userMessageId,
+      sender: 'user',
+      name: 'You',
+      text: textToSend,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setQuery('');
+    setIsSearching(true);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/gemini`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: textToSend }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.details || data.message || 'AI request failed');
+      }
+
+      const aiReplyText = data.response || 'No response returned from AI.';
+      const aiMessage = {
+        id: `ai-${Date.now()}`,
+        sender: 'ai',
+        name: 'ConvoSpace AI',
+        text: aiReplyText,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Gemini error:', error);
+      const errorMessage = {
+        id: `error-${Date.now()}`,
+        sender: 'ai',
+        name: 'ConvoSpace AI',
+        text: `⚠️ **Error:** ${error.message || 'Could not fetch response from AI. Please try again.'}`,
+        isError: true,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   useImperativeHandle(ref, () => ({
     ask: handleAsk,
   }));
-
- const handleAsk = async (apiQuery = query) => {
-  if (apiQuery.trim() === '') return;
-  
-  // 1. UI Preparation
-  setIsSearching(true);
-  setIsPreviewing(true);
-  setResponseText('');
-  setIsCopied(false);
-  setIsShared(false);
-
-  if (responseAreaRef.current) {
-    responseAreaRef.current.scrollTop = 0;
-  }
-
-  try {
-    // 2. The API Call
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/gemini`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: apiQuery })
-    });
-
-    const data = await response.json();
-
-    // 3. Handle Errors
-    if (!response.ok) {
-      // If backend sends an error detail, show it; otherwise use default
-      const errorMsg = data.details || 'API request failed';
-      throw new Error(errorMsg);
-    }
-
-    // 4. Update UI with the Text
-    // Note: We look for 'data.response' because our Backend now sends it that way.
-    if (data && data.response) {
-      setResponseText(data.response);
-      setQuery(''); // Clear the input field only on success
-    } else {
-      setResponseText('AI returned an empty response.');
-    }
-
-  } catch (error) {
-    console.error("Frontend Gemini Error:", error);
-    setResponseText(`Error: ${error.message}`);
-  } finally {
-    setIsSearching(false);
-  }
-};
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -125,229 +154,278 @@ const GeminiChatUI = forwardRef((props, ref) => {
     }
   };
 
-  const handleCopy = () => {
-    if (!responseText) return;
-    navigator.clipboard.writeText(responseText);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
-  };
-
-  const handleShare = async () => {
-    if (!responseText) return;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'AI Response from ConvoSpace',
-          text: responseText,
-        });
-        setIsShared(true);
-      } catch (error) {
-        handleCopy(); 
-      }
+  const handleSelectPrompt = (prompt) => {
+    if (query.trim()) {
+      handleAsk(`${prompt.prefix}${query.trim()}`);
     } else {
-      handleCopy();
+      setQuery(prompt.text);
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     }
-    setIsShared(true);
-    setTimeout(() => setIsShared(false), 2000);
-  };
-  
-  const handlePreview = () => setIsPreviewing(!isPreviewing);
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const maxHeight = 160;
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, maxHeight)}px`;
-    }
-  }, [query]);
-
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = "https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js";
-    script.onload = () => setIsMarkdownLoaded(true);
-    script.onerror = () => setIsMarkdownLoaded(false);
-    document.head.appendChild(script);
-    return () => document.head.removeChild(script);
-  }, []);
-
-  const renderMarkdownPreview = () => {
-    if (isMarkdownLoaded && window.markdownit) {
-      const md = window.markdownit({ html: true, linkify: true, typographer: true });
-      return { __html: md.render(responseText) };
-    }
-    return { __html: `<p style="color: ${SECONDARY_TEXT};">Loading preview library...</p>` };
   };
 
-  const LoadingIndicator = () => (
-    <div className="flex flex-col py-10 items-center justify-center text-center h-full">
-      <Loader className="animate-spin h-10 w-10 mb-4" style={{ color: DESIGN_TOKENS.colors.tertiary }} /> 
-      <p className="text-xl font-semibold" style={{ color: PRIMARY_TEXT }}>Generating insights...</p>
-      <p className="text-sm mt-2" style={{ color: SECONDARY_TEXT }}>The answer is on its way.</p>
-    </div>
-  );
+  const copyMessage = (text, id) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    toast.success('Copied AI response to clipboard');
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
-  const WelcomeScreen = () => (
-    <div className="w-full h-full flex items-center justify-center p-6">
-      <div 
-        className="w-full max-w-sm rounded-xl p-8 flex flex-col items-center justify-center text-center" 
-        style={{ 
-          backgroundColor: SURFACE_BG, 
-          boxShadow: DESIGN_TOKENS.shadows.md, 
-          border: `1px solid ${BORDER_COLOR}`,
-          borderRadius: DESIGN_TOKENS.radius.lg
-        }}
-      >
-        <Sparkles size={48} style={{ color: DESIGN_TOKENS.colors.tertiary }} className="mb-4 animate-pulse-slow"/> 
-        <h3 className="text-3xl font-bold mb-2" style={{ color: PRIMARY_TEXT }}>ConvoSpace AI</h3>
-        <p className="text-center text-md leading-relaxed" style={{ color: SECONDARY_TEXT }}>
-          Your intelligent co-pilot for meetings. Ask about notes, brainstorm, or summarize discussions.
-        </p>
-      </div>
-    </div>
-  );
+  const shareToGroupChat = (text, id) => {
+    if (!socket || !room) {
+      toast.info('Connect to a room to share directly with group chat');
+      return;
+    }
+    // Clean markdown bold/heading markers slightly for clean chat presentation
+    const cleanSnippet = text.length > 500 ? `${text.substring(0, 500)}...` : text;
+    socket.emit('send:message', {
+      room,
+      message: `🤖 [ConvoSpace AI]: ${cleanSnippet}`,
+    });
+    setSharedId(id);
+    toast.success('Shared AI response to Group Chat!');
+    setTimeout(() => setSharedId(null), 2000);
+  };
 
-  const showWelcomeScreen = !isSearching && responseText.trim() === '';
+  const clearChat = () => {
+    setMessages([]);
+  };
 
-  const buttonBaseClasses = `
-    flex items-center px-3 py-1.5 rounded-full text-sm font-medium
-    transition-all duration-200 ease-in-out
-    hover:scale-[1.03] active:scale-[0.98]
-    disabled:opacity-50 disabled:cursor-not-allowed
-  `;
+  const renderMarkdown = (content) => {
+    if (window.markdownit && isMarkdownLoaded) {
+      try {
+        const md = window.markdownit({ html: false, linkify: true, breaks: true });
+        return { __html: md.render(content) };
+      } catch (err) {
+        console.error('Markdown parse error:', err);
+      }
+    }
+    return { __html: content.replace(/\n/g, '<br/>') };
+  };
 
   return (
-    <div 
-      className="relative h-full flex flex-col rounded-xl overflow-hidden" 
+    <div
+      className="w-full flex flex-col overflow-hidden rounded-xl shadow-lg border"
       style={{
+        height: '100%',
         minHeight: '40vh',
-        backgroundColor: ELEVATED_BG, 
+        backgroundColor: SURFACE_BG,
+        borderColor: BORDER_COLOR,
         color: PRIMARY_TEXT,
-        boxShadow: DESIGN_TOKENS.shadows.lg, 
-        borderRadius: DESIGN_TOKENS.radius.xl 
       }}
     >
-        {/* Header - ConvoSpace Branding */}
-        <div
-            className="p-4 flex items-center justify-between"
-            style={{ 
-                background: AI_GRADIENT, 
-                color: WHITE_TEXT,
-                boxShadow: DESIGN_TOKENS.shadows.sm,
-            }}
-        >
-            <div className="flex items-center">
-                <Sparkles size={24} className="mr-3"/>
-                <span className="text-xl font-bold">ConvoSpace</span> 
-            </div>
-            <span className="text-xs opacity-80">AI Co-pilot</span>
-        </div>
-        
-        {/* Response Area Container (Flex-Grow to fill space) */}
-        <div 
-          className="flex-grow overflow-hidden p-4 md:p-6"
-          style={{ backgroundColor: SURFACE_BG }} 
-        >
-            {showWelcomeScreen ? <WelcomeScreen /> : (
-              <div className="w-full">
-                  {/* Controls (Share, Copy, Preview) */}
-                  <div className="flex justify-end space-x-2 mb-4">
-                      
-                      {/* Share Button */}
-                      <button
-                          onClick={handleShare}
-                          disabled={isSearching || !responseText}
-                          className={`${buttonBaseClasses} ${isShared ? 'bg-green-500 text-white' : 'bg-transparent text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
-                      >
-                          <Share2 size={16} className="mr-1" />
-                          {isShared ? 'Shared!' : 'Share'}
-                      </button>
-
-                      {/* Copy Button */}
-                      <button
-                          onClick={handleCopy}
-                          disabled={isSearching || !responseText}
-                          className={`${buttonBaseClasses} ${isCopied ? 'bg-green-500 text-white' : 'bg-transparent text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
-                      >
-                          <Copy size={16} className="mr-1" />
-                          {isCopied ? 'Copied!' : 'Copy'}
-                      </button>
-                      
-                      {/* Preview Toggle Button */}
-                      <button
-                          onClick={handlePreview}
-                          disabled={isSearching || !responseText}
-                          className={`${buttonBaseClasses} ${isPreviewing ? 'bg-transparent text-gray-700 border border-gray-300 hover:bg-gray-50' : 'bg-transparent text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
-                      >
-                          {isPreviewing ? <EyeOff size={16} className="mr-1" /> : <Eye size={16} className="mr-1" />}
-                          {isPreviewing ? 'Plain Text' : 'Rendered'}
-                      </button>
-                  </div>
-                  
-                  {/* Content Display (Fixed Height with Scroll) */}
-                  <div 
-                      ref={responseAreaRef}
-                      className="w-full rounded-lg p-4 md:p-6 shadow-sm overflow-y-auto" // Added overflow-y-auto
-                      style={{ 
-                          backgroundColor: ELEVATED_BG,
-                          border: `1px solid ${BORDER_COLOR}`,
-                          borderRadius: DESIGN_TOKENS.radius.md,
-                          height: MAX_RESPONSE_HEIGHT, // Fixed height applied here
-                      }}
-                  >
-                      {isSearching ? <LoadingIndicator /> : (
-                          responseText ? (
-                              isPreviewing ? (
-                                  <div className="markdown-body" dangerouslySetInnerHTML={renderMarkdownPreview()} style={{ color: PRIMARY_TEXT, lineHeight: '1.7', fontSize: '1rem' }}></div>
-                              ) : (
-                                  <pre className="p-3 rounded-md overflow-x-auto whitespace-pre-wrap text-sm" style={{ backgroundColor: SURFACE_BG, color: PRIMARY_TEXT, border: `1px solid ${BORDER_COLOR}` }}>{responseText}</pre>
-                              )
-                          ) : null
-                      )}
-                  </div>
-              </div>
-            )}
+      {/* Header (Aligned with Chats.jsx) */}
+      <div
+        className="p-4 text-lg font-semibold flex items-center justify-between shadow-sm"
+        style={{
+          backgroundColor: SURFACE_BG,
+          borderBottom: `1px solid ${BORDER_COLOR}`,
+        }}
+      >
+        <div className="flex items-center">
+          <Bot size={22} style={{ color: ACCENT_COLOR }} className="mr-2.5" />
+          <span>ConvoSpace AI</span>
+          <span
+            className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: '#EBF3FF', color: ACCENT_COLOR }}
+          >
+            AI Assistant
+          </span>
         </div>
 
-        {/* Input Bar */}
-        <div className="w-full flex-shrink-0 p-4" style={{ backgroundColor: ELEVATED_BG, borderTop: `1px solid ${BORDER_COLOR}` }}>
-            <div 
-                className="relative flex items-end p-2 rounded-xl shadow-input" 
-                style={{ 
-                    backgroundColor: SURFACE_BG, 
-                    border: `1px solid ${BORDER_COLOR}`,
-                    borderRadius: DESIGN_TOKENS.radius.xl, 
-                }}
+        {messages.length > 0 && (
+          <button
+            onClick={clearChat}
+            title="Clear AI Chat"
+            className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
+      </div>
+
+      {/* Chat Messages Scroll Area (Elevated Background matching Chats.jsx) */}
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 p-4 overflow-y-auto space-y-4"
+        style={{
+          backgroundColor: ELEVATED_BG,
+        }}
+      >
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-6" style={{ color: SECONDARY_TEXT }}>
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 shadow-sm"
+              style={{ backgroundColor: '#EBF3FF' }}
             >
-                
-                <div className="flex items-center justify-center p-2 pl-3 mr-1">
-                    <Sparkles size={20} style={{ color: DESIGN_TOKENS.colors.tertiary }} />
-                </div>
-                
-                <textarea
-                    ref={textareaRef}
-                    className="flex-1 bg-transparent mb-2 focus:outline-none text-base resize-none overflow-y-hidden pt-1.5"
-                    style={{ color: PRIMARY_TEXT, '::placeholder': { color: PLACEHOLDER_TEXT } }}
-                    placeholder="Ask ConvoAI anything..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    rows="1"
-                />
-                
-                <button
-                    className={`p-2 rounded-lg transition-colors duration-200 hover:opacity-90 active:scale-[0.98] disabled:opacity-50`}
-                    style={{ background: ACCENT_GRADIENT, borderRadius: DESIGN_TOKENS.radius.lg }} 
-                    onClick={() => handleAsk()}
-                    disabled={!query.trim() || isSearching}
-                >
-                    <Send size={20} className="text-white" />
-                </button>
+              <Bot size={28} style={{ color: ACCENT_COLOR }} />
             </div>
-            <p className="text-right text-xs mt-2 mr-3" style={{ color: SECONDARY_TEXT }}>
-                Press <span className="font-semibold px-1 py-0.5 rounded" style={{ backgroundColor: HIGHLIGHT_BG, color: PRIMARY_TEXT }}><CornerDownLeft size={10} className="inline-block mr-0.5 relative -top-px"/>Enter</span> to send
+            <h3 className="text-xl font-bold mb-1" style={{ color: PRIMARY_TEXT }}>
+              ConvoSpace AI
+            </h3>
+            <p className="text-sm max-w-xs mt-1">
+              Ask questions, explore concepts, brainstorm solutions, or get answers to help your discussion.
             </p>
-        </div>
+
+            {/* Quick Action Chips */}
+            <div className="mt-5 flex flex-wrap gap-2 justify-center max-w-sm">
+              {QUICK_PROMPTS.map((prompt, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSelectPrompt(prompt)}
+                  className="text-xs px-3 py-1.5 rounded-full border transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] text-left shadow-xs"
+                  style={{
+                    backgroundColor: SURFACE_BG,
+                    borderColor: BORDER_COLOR,
+                    color: PRIMARY_TEXT,
+                  }}
+                >
+                  {prompt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          messages.map((msg) => {
+            const isUser = msg.sender === 'user';
+            return (
+              <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className="max-w-[85%] p-3.5 rounded-xl shadow-sm transition-all duration-100"
+                  style={{
+                    backgroundColor: isUser ? ACCENT_COLOR : SURFACE_BG,
+                    color: isUser ? SURFACE_BG : PRIMARY_TEXT,
+                    border: isUser ? 'none' : `1px solid ${BORDER_COLOR}`,
+                    boxShadow: DESIGN_TOKENS.shadows.sm,
+                    borderTopLeftRadius: DESIGN_TOKENS.radius.lg,
+                    borderTopRightRadius: DESIGN_TOKENS.radius.lg,
+                    borderBottomLeftRadius: isUser ? DESIGN_TOKENS.radius.lg : DESIGN_TOKENS.radius.sm,
+                    borderBottomRightRadius: isUser ? DESIGN_TOKENS.radius.sm : DESIGN_TOKENS.radius.lg,
+                  }}
+                >
+                  {/* Sender Header */}
+                  <div className="flex items-center justify-between mb-1 pb-1">
+                    <span
+                      className="text-xs font-bold flex items-center"
+                      style={{ color: isUser ? SURFACE_BG : ACCENT_COLOR }}
+                    >
+                      {!isUser && <Bot size={14} className="mr-1" />}
+                      {msg.name}
+                    </span>
+
+                    {!isUser && (
+                      <div className="flex items-center space-x-1 ml-2">
+                        {/* Copy button */}
+                        <button
+                          onClick={() => copyMessage(msg.text, msg.id)}
+                          className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
+                          title="Copy message"
+                        >
+                          {copiedId === msg.id ? <Check size={13} className="text-green-600" /> : <Copy size={13} />}
+                        </button>
+
+                        {/* Share to Group Chat button */}
+                        {room && (
+                          <button
+                            onClick={() => shareToGroupChat(msg.text, msg.id)}
+                            className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
+                            title="Share to Group Chat"
+                          >
+                            {sharedId === msg.id ? <Check size={13} className="text-green-600" /> : <Share2 size={13} />}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Message Body */}
+                  {isUser ? (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                  ) : (
+                    <div
+                      className="text-sm leading-relaxed space-y-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:bg-gray-100 [&_pre]:p-2 [&_pre]:rounded [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded text-gray-800"
+                      dangerouslySetInnerHTML={renderMarkdown(msg.text)}
+                    />
+                  )}
+
+                  {msg.time && (
+                    <div
+                      className="text-[10px] text-right mt-1 opacity-70"
+                      style={{ color: isUser ? SURFACE_BG : SECONDARY_TEXT }}
+                    >
+                      {msg.time}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        {/* AI Typing / Thinking Indicator */}
+        {isSearching && (
+          <div className="flex justify-start">
+            <div
+              className="p-3.5 rounded-xl shadow-sm flex items-center space-x-2 border"
+              style={{
+                backgroundColor: SURFACE_BG,
+                borderColor: BORDER_COLOR,
+                borderTopLeftRadius: DESIGN_TOKENS.radius.lg,
+                borderTopRightRadius: DESIGN_TOKENS.radius.lg,
+                borderBottomLeftRadius: DESIGN_TOKENS.radius.sm,
+                borderBottomRightRadius: DESIGN_TOKENS.radius.lg,
+              }}
+            >
+              <Loader2 size={16} style={{ color: ACCENT_COLOR }} className="animate-spin" />
+              <span className="text-xs font-medium" style={{ color: SECONDARY_TEXT }}>
+                ConvoSpace AI is thinking...
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input box (Matching Chats.jsx) */}
+      <div
+        className="p-3 flex items-center"
+        style={{
+          backgroundColor: SURFACE_BG,
+          borderTop: `1px solid ${BORDER_COLOR}`,
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Ask ConvoSpace AI..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="flex-1 p-3 rounded-full text-sm transition-all duration-200"
+          style={{
+            backgroundColor: ELEVATED_BG,
+            color: PRIMARY_TEXT,
+            border: `1px solid ${BORDER_COLOR}`,
+            outline: 'none',
+          }}
+        />
+        <button
+          onClick={() => handleAsk()}
+          disabled={!query.trim() || isSearching}
+          className={`p-3 ml-2 rounded-full transition-all duration-200 hover:scale-[1.05] ${
+            !query.trim() || isSearching ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+          }`}
+          style={{
+            background: ACCENT_GRADIENT,
+            color: SURFACE_BG,
+            boxShadow: DESIGN_TOKENS.shadows.md,
+          }}
+          title="Send query"
+        >
+          <Send size={20} />
+        </button>
+      </div>
     </div>
   );
 });

@@ -68,7 +68,7 @@ const Chats = ({ room }) => {
     }
 
     const handleFileEvent = ({ uploader, name }) => {
-      toast.info(`File event: ${name} by ${uploader}`)
+      toast.info(`File has been uploaded`)
     }
 
     const handleUserJoin = ({ email }) => {

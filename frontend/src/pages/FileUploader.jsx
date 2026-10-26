@@ -179,10 +179,10 @@ const FileUploader = ({ refreshKey, room }) => {
       className="h-full w-full p-0 flex flex-col font-sans overflow-hidden"
       style={{ backgroundColor: SURFACE_BG }}
     >
-      <div className="flex-1 flex flex-col p-4">
+      <div className="flex-1 flex flex-col p-4 min-h-0 overflow-hidden">
         {/* Header */}
         <div
-          className="pb-4 mb-4 flex items-center justify-between"
+          className="pb-3 mb-3 flex items-center justify-between flex-shrink-0"
           style={{ borderBottom: `1px solid ${BORDER_COLOR}` }}
         >
           <h2
@@ -199,7 +199,7 @@ const FileUploader = ({ refreshKey, room }) => {
 
         {/* Error notification banner */}
         {uploadError && (
-          <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 flex items-start justify-between text-xs text-red-700">
+          <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 flex items-start justify-between text-xs text-red-700 flex-shrink-0">
             <span>{uploadError}</span>
             <button
               onClick={() => setUploadError(null)}
@@ -212,7 +212,7 @@ const FileUploader = ({ refreshKey, room }) => {
 
         {/* File Drop Zone Area */}
         <div 
-          className={dropZoneClasses}
+          className={`${dropZoneClasses} flex-shrink-0`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -220,7 +220,7 @@ const FileUploader = ({ refreshKey, room }) => {
             borderColor: isDragging ? PRIMARY_COLOR : BORDER_COLOR,
             backgroundColor: isDragging ? ELEVATED_BG : SURFACE_BG,
             color: PRIMARY_TEXT,
-            marginBottom: '1rem',
+            marginBottom: '0.75rem',
           }}
         >
           <CloudUpload size={32} style={{ color: PRIMARY_COLOR }} />
@@ -266,15 +266,23 @@ const FileUploader = ({ refreshKey, room }) => {
           />
         </div>
 
-        {/* Uploaded Files List */}
-        <div className="flex-1 overflow-y-auto" style={{ backgroundColor: SURFACE_BG }}>
-          <h3 className="text-sm font-semibold mb-2" style={{ color: PRIMARY_TEXT }}>Shared Documents ({uploadedFiles.length})</h3>
+        {/* Uploaded Files Section with dedicated visible scrollbar */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ backgroundColor: SURFACE_BG }}>
+          <h3 className="text-sm font-semibold mb-2 flex-shrink-0" style={{ color: PRIMARY_TEXT }}>
+            Shared Documents ({uploadedFiles.length})
+          </h3>
           
-          <div className="space-y-2">
+          <div 
+            className="flex-1 overflow-y-auto space-y-2 pr-1.5"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(140, 140, 150, 0.4) transparent',
+            }}
+          >
             {uploadedFiles.length > 0 ? (
               uploadedFiles.map((file, index) => (
                 <div 
-                  key={index} 
+                  key={file._id || index} 
                   className="p-3 flex justify-between items-center rounded-lg border transition-all duration-200 hover:shadow-sm"
                   style={{ backgroundColor: ELEVATED_BG, borderColor: BORDER_COLOR }}
                 >
@@ -306,7 +314,7 @@ const FileUploader = ({ refreshKey, room }) => {
                 </div>
               ))
             ) : (
-              <p className="mt-4 text-center text-sm" style={{ color: SECONDARY_TEXT }}>
+              <p className="py-6 text-center text-xs" style={{ color: SECONDARY_TEXT }}>
                 No documents shared in this room yet.
               </p>
             )}
