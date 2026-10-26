@@ -9,39 +9,48 @@ import { getFiles } from '../services/getFiles.js';
 import { downloadFile } from '../services/downloadFile.js';
 import { deleteFile } from '../services/deleteFile.js';
 
-// Design Tokens (Imported for consistency)
+// Design Tokens (Identical to Notepad.jsx for 100% visual harmony)
 const DESIGN_TOKENS = {
   colors: {
-    primary: '#0066FF',       
-    primaryHover: '#0052CC',
-    secondary: '#FF3B30',   
-    surface: '#FFFFFF',
-    surfaceElevated: '#F5F5F7', 
-    border: '#E5E5EA',
+    primary: '#007AFF',       // Brighter Blue
+    primaryDark: '#005ACF',
+    secondary: '#FF4500',     // Orange-red
+    tertiary: '#AF52DE',      // Purple
+    surface: '#FFFFFF',       // Pure white
+    surfaceElevated: '#F0F2F5', // Lightest grey
+    surfaceHighlight: '#E0E5EC', // Slightly darker for active states
+    border: '#E0E0E0',        // Light border
     text: {
-      primary: '#1D1D1F',
-      secondary: '#86868B',
-      tertiary: '#AEAEB2'
+      primary: '#1C1C1E',     // Darkest grey
+      secondary: '#6A6A6A',   // Medium grey
+      placeholder: '#A0A0A0',
+      white: '#FFFFFF'
     },
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    accentGradient: 'linear-gradient(45deg, #007AFF, #5AC8FA)',
+    success: '#4CAF50',
+    delete: '#FF3B30',
   },
   shadows: {
-    sm: '0 1px 3px rgba(0,0,0,0.08)',
-    md: '0 4px 12px rgba(0,0,0,0.1)',
+    sm: '0px 1px 3px rgba(0, 0, 0, 0.08)',
+    md: '0px 4px 12px rgba(0, 0, 0, 0.12)',
+    lg: '0px 8px 24px rgba(0, 0, 0, 0.16)',
   },
   radius: {
-    lg: '16px',
-    xl: '24px',
+    sm: '8px',
+    md: '12px',
+    lg: '20px',
+    xl: '30px',
+    full: '9999px',
   }
 };
 
 const PRIMARY_COLOR = DESIGN_TOKENS.colors.primary;
-const ACCENT_GRADIENT = DESIGN_TOKENS.colors.gradient;
 const PRIMARY_TEXT = DESIGN_TOKENS.colors.text.primary;
 const SECONDARY_TEXT = DESIGN_TOKENS.colors.text.secondary;
-const ELEVATED_BG = DESIGN_TOKENS.colors.surfaceElevated;
 const SURFACE_BG = DESIGN_TOKENS.colors.surface;
+const ELEVATED_BG = DESIGN_TOKENS.colors.surfaceElevated;
 const BORDER_COLOR = DESIGN_TOKENS.colors.border;
+const ACCENT_GRADIENT = DESIGN_TOKENS.colors.accentGradient;
 
 
 const FileUploader = ({ refreshKey, room }) => {
@@ -165,91 +174,92 @@ const FileUploader = ({ refreshKey, room }) => {
 
   // Enhanced Drop Zone Classes
   const dropZoneClasses = `
-    w-full p-6 border-2 border-dashed rounded-xl
+    w-full p-4 border-2 border-dashed rounded-lg
     flex flex-col items-center justify-center text-center
-    transition-all duration-300 cursor-pointer
+    transition-all duration-200 cursor-pointer
     ${isDragging
-      ? 'shadow-md border-solid scale-[1.01]'
-      : 'shadow-sm hover:shadow-md'
+      ? 'border-solid scale-[1.01]'
+      : 'hover:border-solid'
     }
   `;
 
   return (
     <div
-      className="h-full w-full p-0 flex flex-col font-sans overflow-hidden"
-      style={{ backgroundColor: SURFACE_BG }}
+      className="h-full w-full flex flex-col font-sans rounded-xl overflow-hidden"
+      style={{
+        backgroundColor: ELEVATED_BG,
+        color: PRIMARY_TEXT,
+        boxShadow: DESIGN_TOKENS.shadows.lg,
+        borderRadius: DESIGN_TOKENS.radius.xl,
+      }}
     >
-      <div className="flex-1 flex flex-col p-4 min-h-0 overflow-hidden">
-        {/* Header */}
-        <div
-          className="pb-3 mb-3 flex items-center justify-between flex-shrink-0"
-          style={{ borderBottom: `1px solid ${BORDER_COLOR}` }}
-        >
-          <h2
-            className="text-xl font-bold flex items-center"
-            style={{ color: PRIMARY_TEXT }}
-          >
-            <FolderOpen size={20} style={{ color: PRIMARY_COLOR }} className="mr-2"/>
-            Shared Files
-          </h2>
-          <span className="text-sm font-medium" style={{ color: SECONDARY_TEXT }}>
-            Room: {room}
-          </span>
+      {/* Header (Aligned with Notepad.jsx) */}
+      <div
+        className="p-4 flex items-center justify-between"
+        style={{
+          backgroundColor: SURFACE_BG,
+          borderBottom: `1px solid ${BORDER_COLOR}`,
+          boxShadow: DESIGN_TOKENS.shadows.sm,
+        }}
+      >
+        <div className="flex items-center">
+          <FolderOpen size={20} style={{ color: PRIMARY_COLOR }} className="mr-3" />
+          <span className="text-lg font-semibold" style={{ color: PRIMARY_TEXT }}>Shared Files</span>
         </div>
+        <span className="text-sm font-medium" style={{ color: SECONDARY_TEXT }}>
+          Room: {room}
+        </span>
+      </div>
 
-        {/* Error notification banner */}
-        {uploadError && (
-          <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 flex items-start justify-between text-xs text-red-700 flex-shrink-0">
-            <span>{uploadError}</span>
-            <button
-              onClick={() => setUploadError(null)}
-              className="ml-2 font-bold hover:text-red-900"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+      {/* Error notification banner */}
+      {uploadError && (
+        <div className="m-3 p-3 rounded-lg bg-red-50 border border-red-200 flex items-start justify-between text-xs text-red-700 flex-shrink-0">
+          <span>{uploadError}</span>
+          <button
+            onClick={() => setUploadError(null)}
+            className="ml-2 font-bold hover:text-red-900"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
-        {/* File Drop Zone Area */}
+      {/* File Drop Zone Area */}
+      <div className="p-4 flex-shrink-0" style={{ backgroundColor: SURFACE_BG, borderBottom: `1px solid ${BORDER_COLOR}` }}>
         <div 
-          className={`${dropZoneClasses} flex-shrink-0`}
+          className={dropZoneClasses}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           style={{
             borderColor: isDragging ? PRIMARY_COLOR : BORDER_COLOR,
-            backgroundColor: isDragging ? ELEVATED_BG : SURFACE_BG,
+            backgroundColor: isDragging ? '#EBF3FF' : ELEVATED_BG,
             color: PRIMARY_TEXT,
-            marginBottom: '0.75rem',
+            borderRadius: DESIGN_TOKENS.radius.md,
+            boxShadow: DESIGN_TOKENS.shadows.sm,
           }}
         >
-          <CloudUpload size={32} style={{ color: PRIMARY_COLOR }} />
+          <CloudUpload size={28} style={{ color: PRIMARY_COLOR }} />
 
-          <p className="mt-2 text-base font-semibold">
-            {isUploading ? 'Uploading...' : 'Drag & Drop your file here'}
+          <p className="mt-1.5 text-sm font-semibold" style={{ color: PRIMARY_TEXT }}>
+            {isUploading ? 'Uploading file...' : 'Drag & Drop your file here'}
           </p>
           <p className="text-xs" style={{ color: SECONDARY_TEXT }}>
-            (Max: 20MB — PDF, Word, TXT, Images)
+            (PDF, Word, TXT, Images — Max 20MB)
           </p>
 
-          <div className="flex items-center space-x-2 w-full my-3">
-            <div className="flex-grow h-px" style={{ backgroundColor: BORDER_COLOR }}></div>
-            <span className="text-xs uppercase font-medium" style={{ color: SECONDARY_TEXT }}>OR</span>
-            <div className="flex-grow h-px" style={{ backgroundColor: BORDER_COLOR }}></div>
-          </div>
-
-          {/* Select File Button */}
           <button 
             type="button"
             onClick={onUploadClick}
             disabled={isUploading}
-            className="mt-2 px-6 py-2 rounded-full text-sm font-semibold shadow-md transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98] focus:outline-none disabled:opacity-60"
+            className="mt-2.5 px-6 py-2 rounded-full text-sm font-semibold transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
             style={{
               background: ACCENT_GRADIENT,
-              color: SURFACE_BG,
+              color: DESIGN_TOKENS.colors.text.white,
+              boxShadow: DESIGN_TOKENS.shadows.md,
             }}
           >
-            {isUploading ? 'Processing...' : 'Select File'}
+            {isUploading ? 'Uploading...' : 'Browse File'}
           </button>
 
           <input
@@ -265,60 +275,83 @@ const FileUploader = ({ refreshKey, room }) => {
             }}
           />
         </div>
+      </div>
 
-        {/* Uploaded Files Section with dedicated visible scrollbar */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ backgroundColor: SURFACE_BG }}>
-          <h3 className="text-sm font-semibold mb-2 flex-shrink-0" style={{ color: PRIMARY_TEXT }}>
-            Shared Documents ({uploadedFiles.length})
+      {/* Uploaded Files Section */}
+      <div className="flex-1 p-4 flex flex-col min-h-0 overflow-hidden" style={{ backgroundColor: ELEVATED_BG }}>
+        <div className="flex items-center justify-between mb-2.5 flex-shrink-0">
+          <h3 className="text-sm font-semibold" style={{ color: PRIMARY_TEXT }}>
+            Shared Documents
           </h3>
-          
-          <div 
-            className="flex-1 overflow-y-auto space-y-2 pr-1.5"
-            style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(140, 140, 150, 0.4) transparent',
-            }}
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-medium"
+            style={{ backgroundColor: SURFACE_BG, color: SECONDARY_TEXT, border: `1px solid ${BORDER_COLOR}` }}
           >
-            {uploadedFiles.length > 0 ? (
-              uploadedFiles.map((file, index) => (
-                <div 
-                  key={file._id || index} 
-                  className="p-3 flex justify-between items-center rounded-lg border transition-all duration-200 hover:shadow-sm"
-                  style={{ backgroundColor: ELEVATED_BG, borderColor: BORDER_COLOR }}
-                >
-                  <div className="flex items-center space-x-2 truncate">
-                    <FileText size={18} style={{ color: PRIMARY_COLOR }} className="flex-shrink-0" />
-                    <span className="text-sm font-medium truncate" style={{ color: PRIMARY_TEXT }}>
-                      {file.name}
-                    </span>
+            {uploadedFiles.length} {uploadedFiles.length === 1 ? 'file' : 'files'}
+          </span>
+        </div>
+        
+        <div 
+          className="flex-1 overflow-y-auto space-y-2.5 pr-1"
+          style={{
+            scrollbarWidth: 'thin',
+          }}
+        >
+          {uploadedFiles.length > 0 ? (
+            uploadedFiles.map((file, index) => (
+              <div 
+                key={file._id || index} 
+                className="p-3.5 flex justify-between items-center rounded-lg shadow-sm transition-all duration-150 hover:shadow-md"
+                style={{ 
+                  backgroundColor: SURFACE_BG, 
+                  borderLeft: `4px solid ${PRIMARY_COLOR}`,
+                  boxShadow: DESIGN_TOKENS.shadows.sm,
+                }}
+              >
+                <div className="flex items-center space-x-2.5 truncate mr-2">
+                  <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: '#EBF3FF' }}
+                  >
+                    <FileText size={16} style={{ color: PRIMARY_COLOR }} />
                   </div>
-                  
-                  <div className="flex space-x-2 flex-shrink-0">
-                    <button
-                      onClick={() => downloadFile(file._id, file.name)}
-                      className="p-1.5 rounded-full transition-colors duration-200 hover:bg-gray-200"
-                      style={{ color: PRIMARY_COLOR }}
-                      title="Download File"
-                    >
-                      <Download size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(file._id)}
-                      className="p-1.5 rounded-full transition-colors duration-200 hover:bg-red-100"
-                      style={{ color: DESIGN_TOKENS.colors.secondary }}
-                      title="Delete File"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  <span className="text-sm font-medium truncate" style={{ color: PRIMARY_TEXT }}>
+                    {file.name}
+                  </span>
                 </div>
-              ))
-            ) : (
-              <p className="py-6 text-center text-xs" style={{ color: SECONDARY_TEXT }}>
-                No documents shared in this room yet.
+                
+                {/* Action pill buttons matching Notepad.jsx */}
+                <div className="flex space-x-2 flex-shrink-0">
+                  <button
+                    onClick={() => downloadFile(file._id, file.name)}
+                    className="text-xs font-medium py-1 px-3 rounded-full transition-colors hover:bg-blue-500 hover:text-white flex items-center"
+                    style={{ border: `1px solid ${PRIMARY_COLOR}`, color: PRIMARY_COLOR }}
+                    title="Download File"
+                  >
+                    <Download size={13} className="mr-1" /> Download
+                  </button>
+                  <button
+                    onClick={() => handleDelete(file._id)}
+                    className="text-xs font-medium py-1 px-3 rounded-full text-white transition-colors bg-red-500 hover:bg-red-600 flex items-center"
+                    style={{ backgroundColor: DESIGN_TOKENS.colors.delete }}
+                    title="Delete File"
+                  >
+                    <Trash2 size={13} className="mr-1" /> Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center p-6" style={{ color: SECONDARY_TEXT }}>
+              <FolderOpen size={40} style={{ color: PRIMARY_COLOR }} className="mb-2 opacity-60" />
+              <p className="text-sm font-medium" style={{ color: PRIMARY_TEXT }}>
+                No files shared yet
               </p>
-            )}
-          </div>
+              <p className="text-xs mt-1 max-w-[200px]">
+                Uploaded files and meeting attachments will appear here.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

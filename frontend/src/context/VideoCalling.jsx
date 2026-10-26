@@ -215,9 +215,9 @@ const VideoCalling = () => {
   useEffect(() => {
     if (isJoined && !myStream && !mediaStarted) {
       console.log('🎥 Getting local media...');
-      navigator.mediaDevices.getUserMedia({ 
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
-        audio: true 
+      navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true
       })
         .then((stream) => {
           console.log('✅ Got local stream');
@@ -234,10 +234,10 @@ const VideoCalling = () => {
         });
     }
   }, [isJoined, myStream, mediaStarted]);
-  
+
   const handleUserJoined = useCallback(async ({ email, id }) => {
     console.log('👤 User joined:', email, id);
-    
+
     setRemoteUsers(prev => {
       if (prev.some(u => u.id === id)) return prev;
       return [...prev, { id, email, stream: null }];
@@ -249,16 +249,16 @@ const VideoCalling = () => {
     }
 
     console.log('📞 Creating peer for:', id);
-    
+
     try {
       peer.createPeer(
         id,
         (remoteStream) => {
           console.log('✅ Remote stream from:', id);
-          setRemoteUsers(prev => 
+          setRemoteUsers(prev =>
             prev.map(u => u.id === id ? { ...u, stream: remoteStream } : u)
           );
-          
+
           const videoEl = remoteVideoRefs.current.get(id);
           if (videoEl) {
             videoEl.srcObject = remoteStream;
@@ -299,13 +299,13 @@ const VideoCalling = () => {
 
   const handleIncomingCall = useCallback(async ({ from, offer }) => {
     console.log('📞 Incoming call from:', from);
-    
+
     try {
       let stream = myStreamRef.current;
       if (!stream) {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
-          audio: true 
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: true
         });
         setMyStream(stream);
         myStreamRef.current = stream;
@@ -319,10 +319,10 @@ const VideoCalling = () => {
         from,
         (remoteStream) => {
           console.log('✅ Remote stream from:', from);
-          setRemoteUsers(prev => 
+          setRemoteUsers(prev =>
             prev.map(u => u.id === from ? { ...u, stream: remoteStream } : u)
           );
-          
+
           const videoEl = remoteVideoRefs.current.get(from);
           if (videoEl) {
             videoEl.srcObject = remoteStream;
@@ -475,12 +475,12 @@ const VideoCalling = () => {
   // Loading/Connecting State
   if (!socket) {
     return (
-      <div 
-        className="w-full min-h-screen flex items-center justify-center" 
-        style={{ 
-          backgroundColor: ELEVATED_BG, 
-          height: `calc(100vh - ${NAVBAR_HEIGHT})`, 
-          marginTop: NAVBAR_HEIGHT 
+      <div
+        className="w-full min-h-screen flex items-center justify-center"
+        style={{
+          backgroundColor: ELEVATED_BG,
+          height: `calc(100vh - ${NAVBAR_HEIGHT})`,
+          marginTop: NAVBAR_HEIGHT
         }}>
         <div className="text-center">
           <Zap size={32} style={{ color: DESIGN_TOKENS.colors.primary }} className="mx-auto mb-4 animate-pulse" />
@@ -499,12 +499,12 @@ const VideoCalling = () => {
   if (!isJoined) {
     // ... (All code for the Join state, QuotesTicker, About, Footer calls remains unchanged)
     return (
-      <div 
-        className="w-full pt-8 px-4 sm:px-6 md:px-8 lg:px-12" 
-        style={{ 
-          minHeight: `calc(100vh - ${NAVBAR_HEIGHT})`, 
-          marginTop: NAVBAR_HEIGHT, 
-          backgroundColor: ELEVATED_BG 
+      <div
+        className="w-full pt-8 px-4 sm:px-6 md:px-8 lg:px-12"
+        style={{
+          minHeight: `calc(100vh - ${NAVBAR_HEIGHT})`,
+          marginTop: NAVBAR_HEIGHT,
+          backgroundColor: ELEVATED_BG
         }}
       >
         <div className="max-w-7xl mx-auto">
@@ -525,9 +525,9 @@ const VideoCalling = () => {
                   <Zap size={18} style={{ color: DESIGN_TOKENS.colors.primary }} className="mr-2" />
                   Create Instant Room
                 </h2>
-                <button 
-                  onClick={generateRoomCode} 
-                  className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 hover:scale-[1.01] mb-4" 
+                <button
+                  onClick={generateRoomCode}
+                  className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 hover:scale-[1.01] mb-4"
                   style={{ background: ACCENT_GRADIENT, boxShadow: DESIGN_TOKENS.shadows.md }}
                 >
                   Generate New Room Code
@@ -538,9 +538,9 @@ const VideoCalling = () => {
                       Share this code: <span className="font-bold text-lg" style={{ color: PRIMARY_TEXT }}>{generatedRoom}</span>
                     </p>
                     {/* FIX 1: Apply ACCENT_GRADIENT theme to the "Start Meeting" button */}
-                    <button 
-                      className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 hover:scale-[1.01]" 
-                      style={{ background: ACCENT_GRADIENT, boxShadow: DESIGN_TOKENS.shadows.md }} 
+                    <button
+                      className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 hover:scale-[1.01]"
+                      style={{ background: ACCENT_GRADIENT, boxShadow: DESIGN_TOKENS.shadows.md }}
                       type="submit"
                     >
                       Start Meeting
@@ -556,25 +556,25 @@ const VideoCalling = () => {
                   Join Existing Room
                 </h2>
                 <form onSubmit={handleJoinRoomSubmit} className="flex flex-col space-y-4">
-                  <input 
-                    className="rounded-xl p-4 font-medium border-2 focus:ring-2 focus:ring-opacity-50" 
-                    style={{ 
-                      borderColor: BORDER_COLOR, 
+                  <input
+                    className="rounded-xl p-4 font-medium border-2 focus:ring-2 focus:ring-opacity-50"
+                    style={{
+                      borderColor: BORDER_COLOR,
                       backgroundColor: SURFACE_BG,
                       color: PRIMARY_TEXT,
                       boxShadow: DESIGN_TOKENS.shadows.sm,
                       outline: 'none',
                       '--tw-ring-color': DESIGN_TOKENS.colors.primary
-                    }} 
-                    placeholder="Enter 5-Character Room Code (e.g., A1B2C)" 
-                    value={joinRoom} 
-                    onChange={(e) => setJoinRoom(e.target.value.toUpperCase())} 
+                    }}
+                    placeholder="Enter 5-Character Room Code (e.g., A1B2C)"
+                    value={joinRoom}
+                    onChange={(e) => setJoinRoom(e.target.value.toUpperCase())}
                     maxLength={5}
                   />
-                  <button 
-                    className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 hover:scale-[1.01]" 
-                    style={{ background: ACCENT_GRADIENT, boxShadow: DESIGN_TOKENS.shadows.md }} 
-                    type="submit" 
+                  <button
+                    className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 hover:scale-[1.01]"
+                    style={{ background: ACCENT_GRADIENT, boxShadow: DESIGN_TOKENS.shadows.md }}
+                    type="submit"
                     disabled={!joinRoom || joinRoom.length !== 5}
                   >
                     Join Meeting
@@ -585,8 +585,8 @@ const VideoCalling = () => {
             </div>
 
             {/* Right Promotional Area (Gradient) */}
-            <div 
-              className="w-full lg:w-2/5 p-12 flex flex-col justify-between rounded-b-xl lg:rounded-r-xl lg:rounded-bl-none min-h-[200px] lg:min-h-full" 
+            <div
+              className="w-full lg:w-2/5 p-12 flex flex-col justify-between rounded-b-xl lg:rounded-r-xl lg:rounded-bl-none min-h-[200px] lg:min-h-full"
               style={{ background: ACCENT_GRADIENT, boxShadow: DESIGN_TOKENS.shadows.lg }}
             >
               <h3 className="text-3xl font-extrabold text-white mb-4">ConvoSpace Advantage</h3>
@@ -610,7 +610,7 @@ const VideoCalling = () => {
             </div>
           </ElevatedCard>
         </div>
-        
+
         {/* Supplementary Content */}
         <div className="max-w-7xl mx-auto space-y-12">
           <QuotesTicker />
@@ -623,32 +623,32 @@ const VideoCalling = () => {
 
   // In-Call/Joined State (The Dashboard)
   const totalUsers = 1 + remoteUsers.length; // Local user + remote users
-  
+
   // FIX: Dynamic Grid Logic (Ensures good sizing for 1, 2, or 3 users)
   const getVideoGridClass = (count) => {
     if (count <= 1) return 'grid-cols-1';
     if (count === 2) return 'grid-cols-1 lg:grid-cols-2';
-    if (count === 3) return 'grid-cols-1 md:grid-cols-3'; 
+    if (count === 3) return 'grid-cols-1 md:grid-cols-3';
     // For 4 or more, use a 2x2 on medium, and 3+ on large
-    return 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'; 
+    return 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3';
   };
-  
+
   // Calculate grid class based on total users
   const gridClass = getVideoGridClass(totalUsers);
 
   return (
-    <div 
-      className="w-full p-4 sm:p-6 lg:p-8" 
-      style={{ 
-        backgroundColor: ELEVATED_BG, 
-        minHeight: `calc(100vh - ${NAVBAR_HEIGHT})`, 
-        marginTop: NAVBAR_HEIGHT 
+    <div
+      className="w-full p-4 sm:p-6 lg:p-8"
+      style={{
+        backgroundColor: ELEVATED_BG,
+        minHeight: `calc(100vh - ${NAVBAR_HEIGHT})`,
+        marginTop: NAVBAR_HEIGHT
       }}
     >
       <div className="max-w-7xl mx-auto space-y-6">
-        
+
         {/* Main Video Area & Room Info */}
-        <div className="flex flex-col lg:flex-row gap-6 h-auto lg:h-[70vh]">
+        <div className="flex flex-col lg:flex-row gap-6 min-h-[540px] lg:h-[78vh]">
           {/* Main Video Panel (Large View) */}
           <ElevatedCard className="flex-1 p-4 flex flex-col overflow-hidden">
             <h2 className="text-2xl font-extrabold mb-4" style={{ color: PRIMARY_TEXT }}>
@@ -656,27 +656,27 @@ const VideoCalling = () => {
             </h2>
 
             {/* FIX: Video Grid Wrapper - Handles the fixed height and overflow scroll */}
-            <div 
+            <div
               className="flex-grow overflow-x-auto overflow-y-hidden pb-4" // Horizontal scroll for overflow, hiding vertical scrollbar
               style={{ maxHeight: 'calc(100% - 100px)' }} // Limit height within card
             >
               <div className="flex space-x-4">
-                
+
                 {/* Local Video */}
-                <div 
-                  className="flex-shrink-0 relative bg-black rounded-xl overflow-hidden shadow-lg border-4" 
-                  style={{ 
-                    borderColor: DESIGN_TOKENS.colors.primary, 
+                <div
+                  className="flex-shrink-0 relative bg-black rounded-xl overflow-hidden shadow-lg border-4"
+                  style={{
+                    borderColor: DESIGN_TOKENS.colors.primary,
                     width: '320px', // Fixed width for horizontal scroll
                     height: '200px' // Fixed height for a 16:10 aspect ratio close to 16:9
                   }}
                 >
-                  <video 
-                    ref={localVideoRef} 
-                    autoPlay 
-                    muted 
-                    playsInline 
-                    className={`w-full h-full object-cover ${!isVideoOn ? 'hidden' : 'block'}`} 
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className={`w-full h-full object-cover ${!isVideoOn ? 'hidden' : 'block'}`}
                   />
 
                   {/* Camera Off Overlay Screen */}
@@ -706,10 +706,10 @@ const VideoCalling = () => {
 
                 {/* Remote Videos */}
                 {remoteUsers.map((user) => (
-                  <div 
-                    key={user.id} 
-                    className="flex-shrink-0 relative bg-black rounded-xl overflow-hidden shadow-lg border-2 border-gray-400" 
-                    style={{ 
+                  <div
+                    key={user.id}
+                    className="flex-shrink-0 relative bg-black rounded-xl overflow-hidden shadow-lg border-2 border-gray-400"
+                    style={{
                       width: '320px', // Fixed width
                       height: '200px' // Fixed height
                     }}
@@ -733,29 +733,29 @@ const VideoCalling = () => {
                 ))}
               </div>
             </div>
-            
+
             {/* Controls Bar */}
             <div className="flex justify-center p-4 mt-4 space-x-4 bg-white/70 rounded-full backdrop-blur-lg shadow-xl self-center">
-              <button 
-                onClick={toggleMic} 
+              <button
+                onClick={toggleMic}
                 className={`p-3 rounded-full transition-all duration-200 hover:scale-105 ${isMicOn ? 'bg-white text-gray-700 hover:bg-gray-100' : 'bg-red-500 text-white hover:bg-red-600'}`}
                 style={{ boxShadow: DESIGN_TOKENS.shadows.sm }}
                 aria-label={isMicOn ? 'Mute microphone' : 'Unmute microphone'}
               >
                 {isMicOn ? <Mic size={20} /> : <MicOff size={20} />}
               </button>
-              
-              <button 
-                onClick={toggleVideo} 
+
+              <button
+                onClick={toggleVideo}
                 className={`p-3 rounded-full transition-all duration-200 hover:scale-105 ${isVideoOn ? 'bg-white text-gray-700 hover:bg-gray-100' : 'bg-red-500 text-white hover:bg-red-600'}`}
                 style={{ boxShadow: DESIGN_TOKENS.shadows.sm }}
                 aria-label={isVideoOn ? 'Stop video' : 'Start video'}
               >
                 {isVideoOn ? <Video size={20} /> : <VideoOff size={20} />}
               </button>
-              
-              <button 
-                onClick={handleLeaveMeeting} 
+
+              <button
+                onClick={handleLeaveMeeting}
                 className="p-3 bg-red-600 text-white rounded-full transition-all duration-200 hover:bg-red-700 hover:scale-105"
                 style={{ boxShadow: DESIGN_TOKENS.shadows.md }}
                 aria-label="End call"
@@ -766,8 +766,8 @@ const VideoCalling = () => {
           </ElevatedCard>
 
           {/* Right Sidebar (File Uploader) */}
-          <div className="w-full lg:w-96 flex-shrink-0">
-            <ElevatedCard className="h-full p-0 overflow-hidden">
+          <div className="w-full lg:w-96 flex-shrink-0 flex flex-col min-h-[520px]">
+            <ElevatedCard className="h-full min-h-[520px] p-0 overflow-hidden flex flex-col">
               <FileUploader refreshKey={refreshKey} room={room} />
             </ElevatedCard>
           </div>

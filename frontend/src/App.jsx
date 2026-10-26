@@ -3,6 +3,7 @@ import Login from './components/Auth/Login'
 import Register from './components/Auth/Register'
 import Dashboard from './components/DashBoard/dashboard'
 import Subscriptions from './components/DashBoard/subscriptions'
+import Features from './pages/Features'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
 import axios from 'axios'
 
@@ -57,6 +58,7 @@ const App = () => {
         <Route path='/' element={<Navigate to='/login' replace />} />
         <Route path='/dashboard' element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path='/subscriptions' element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
+        <Route path='/features' element={<Features />} />
       </Routes>
     </BrowserRouter>
   )

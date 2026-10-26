@@ -4,39 +4,48 @@ import { useSocket } from '../context/SocketProvider';
 import { toast } from 'react-toastify';
 import { Bot, Send, Copy, Check, Share2, Trash2, Loader2, MessageSquare } from 'lucide-react';
 
-// Design Tokens (Identical to Chats.jsx for 100% visual harmony)
+// Design Tokens (Identical to Notepad.jsx for 100% visual harmony)
 const DESIGN_TOKENS = {
   colors: {
-    primary: '#0066FF',       // Vibrant blue
-    primaryHover: '#0052CC',
-    secondary: '#FF3B30',     // Accent red
-    surface: '#FFFFFF',
-    surfaceElevated: '#F5F5F7', // Light gray background for contrast
-    border: '#E5E5EA',
+    primary: '#007AFF',       // Brighter Blue
+    primaryDark: '#005ACF',
+    secondary: '#FF4500',     // Orange-red
+    tertiary: '#AF52DE',      // Purple
+    surface: '#FFFFFF',       // Pure white
+    surfaceElevated: '#F0F2F5', // Lightest grey
+    surfaceHighlight: '#E0E5EC', // Slightly darker for active states
+    border: '#E0E0E0',        // Light border
     text: {
-      primary: '#1D1D1F',
-      secondary: '#86868B',
-      tertiary: '#AEAEB2'
+      primary: '#1C1C1E',     // Darkest grey
+      secondary: '#6A6A6A',   // Medium grey
+      placeholder: '#A0A0A0',
+      white: '#FFFFFF'
     },
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    accentGradient: 'linear-gradient(45deg, #007AFF, #5AC8FA)',
+    success: '#4CAF50',
+    delete: '#FF3B30',
   },
   shadows: {
-    sm: '0 1px 3px rgba(0,0,0,0.08)',
-    md: '0 4px 12px rgba(0,0,0,0.1)',
+    sm: '0px 1px 3px rgba(0, 0, 0, 0.08)',
+    md: '0px 4px 12px rgba(0, 0, 0, 0.12)',
+    lg: '0px 8px 24px rgba(0, 0, 0, 0.16)',
   },
   radius: {
-    lg: '16px',
-    xl: '24px',
+    sm: '8px',
+    md: '12px',
+    lg: '20px',
+    xl: '30px',
+    full: '9999px',
   }
 };
 
-const ACCENT_COLOR = DESIGN_TOKENS.colors.primary;
+const PRIMARY_COLOR = DESIGN_TOKENS.colors.primary;
 const PRIMARY_TEXT = DESIGN_TOKENS.colors.text.primary;
 const SECONDARY_TEXT = DESIGN_TOKENS.colors.text.secondary;
-const ELEVATED_BG = DESIGN_TOKENS.colors.surfaceElevated;
 const SURFACE_BG = DESIGN_TOKENS.colors.surface;
+const ELEVATED_BG = DESIGN_TOKENS.colors.surfaceElevated;
 const BORDER_COLOR = DESIGN_TOKENS.colors.border;
-const ACCENT_GRADIENT = DESIGN_TOKENS.colors.gradient;
+const ACCENT_GRADIENT = DESIGN_TOKENS.colors.accentGradient;
 
 const QUICK_PROMPTS = [
   { label: 'Explain a concept', prefix: 'Explain in simple terms with examples: ', text: 'Explain how this works in simple terms with examples: ' },
@@ -175,7 +184,7 @@ const GeminiChatUI = forwardRef(({ room }, ref) => {
 
   const shareToGroupChat = (text, id) => {
     if (!socket || !room) {
-      toast.info('Connect to a room to share directly with group chat');
+      toast.info('Connect to a room to share directly with Meeting Discussion');
       return;
     }
     // Clean markdown bold/heading markers slightly for clean chat presentation
@@ -185,7 +194,7 @@ const GeminiChatUI = forwardRef(({ room }, ref) => {
       message: `🤖 [ConvoSpace AI]: ${cleanSnippet}`,
     });
     setSharedId(id);
-    toast.success('Shared AI response to Group Chat!');
+    toast.success('Shared AI response to Meeting Discussion!');
     setTimeout(() => setSharedId(null), 2000);
   };
 
@@ -207,70 +216,65 @@ const GeminiChatUI = forwardRef(({ room }, ref) => {
 
   return (
     <div
-      className="w-full flex flex-col overflow-hidden rounded-xl shadow-lg border"
+      className="w-full h-full flex flex-col rounded-xl overflow-hidden"
       style={{
-        height: '100%',
         minHeight: '40vh',
-        backgroundColor: SURFACE_BG,
-        borderColor: BORDER_COLOR,
+        backgroundColor: ELEVATED_BG,
         color: PRIMARY_TEXT,
+        boxShadow: DESIGN_TOKENS.shadows.lg,
+        borderRadius: DESIGN_TOKENS.radius.xl,
       }}
     >
-      {/* Header (Aligned with Chats.jsx) */}
+      {/* Header (Aligned with Notepad.jsx) */}
       <div
-        className="p-4 text-lg font-semibold flex items-center justify-between shadow-sm"
+        className="p-4 flex items-center justify-between"
         style={{
           backgroundColor: SURFACE_BG,
           borderBottom: `1px solid ${BORDER_COLOR}`,
+          boxShadow: DESIGN_TOKENS.shadows.sm,
         }}
       >
         <div className="flex items-center">
-          <Bot size={22} style={{ color: ACCENT_COLOR }} className="mr-2.5" />
-          <span>ConvoSpace AI</span>
-          <span
-            className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: '#EBF3FF', color: ACCENT_COLOR }}
-          >
-            AI Assistant
-          </span>
+          <Bot size={20} style={{ color: PRIMARY_COLOR }} className="mr-3" />
+          <span className="text-lg font-semibold" style={{ color: PRIMARY_TEXT }}>ConvoSpace AI</span>
         </div>
 
-        {messages.length > 0 && (
-          <button
-            onClick={clearChat}
-            title="Clear AI Chat"
-            className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-          >
-            <Trash2 size={16} />
-          </button>
-        )}
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium" style={{ color: SECONDARY_TEXT }}>
+            Room: {room}
+          </span>
+          {messages.length > 0 && (
+            <button
+              onClick={clearChat}
+              title="Clear AI Chat"
+              className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-gray-100 transition-colors ml-1"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Chat Messages Scroll Area (Elevated Background matching Chats.jsx) */}
+      {/* Chat Messages Scroll Area (Elevated Background matching Notepad) */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 p-4 overflow-y-auto space-y-4"
+        className="flex-1 p-4 overflow-y-auto space-y-3"
         style={{
           backgroundColor: ELEVATED_BG,
         }}
       >
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-6" style={{ color: SECONDARY_TEXT }}>
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 shadow-sm"
-              style={{ backgroundColor: '#EBF3FF' }}
-            >
-              <Bot size={28} style={{ color: ACCENT_COLOR }} />
-            </div>
-            <h3 className="text-xl font-bold mb-1" style={{ color: PRIMARY_TEXT }}>
+          <div className="flex flex-col items-center justify-center h-full text-center p-8" style={{ color: SECONDARY_TEXT }}>
+            <Bot size={48} style={{ color: PRIMARY_COLOR }} className="mb-4" />
+            <h3 className="text-xl font-bold mb-2" style={{ color: PRIMARY_TEXT }}>
               ConvoSpace AI
             </h3>
-            <p className="text-sm max-w-xs mt-1">
-              Ask questions, explore concepts, brainstorm solutions, or get answers to help your discussion.
+            <p className="text-sm max-w-xs mb-4">
+              Ask questions, brainstorm solutions, or get answers to assist your meeting.
             </p>
 
             {/* Quick Action Chips */}
-            <div className="mt-5 flex flex-wrap gap-2 justify-center max-w-sm">
+            <div className="flex flex-wrap gap-2 justify-center max-w-sm">
               {QUICK_PROMPTS.map((prompt, index) => (
                 <button
                   key={index}
@@ -292,73 +296,81 @@ const GeminiChatUI = forwardRef(({ room }, ref) => {
             const isUser = msg.sender === 'user';
             return (
               <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className="max-w-[85%] p-3.5 rounded-xl shadow-sm transition-all duration-100"
-                  style={{
-                    backgroundColor: isUser ? ACCENT_COLOR : SURFACE_BG,
-                    color: isUser ? SURFACE_BG : PRIMARY_TEXT,
-                    border: isUser ? 'none' : `1px solid ${BORDER_COLOR}`,
-                    boxShadow: DESIGN_TOKENS.shadows.sm,
-                    borderTopLeftRadius: DESIGN_TOKENS.radius.lg,
-                    borderTopRightRadius: DESIGN_TOKENS.radius.lg,
-                    borderBottomLeftRadius: isUser ? DESIGN_TOKENS.radius.lg : DESIGN_TOKENS.radius.sm,
-                    borderBottomRightRadius: isUser ? DESIGN_TOKENS.radius.sm : DESIGN_TOKENS.radius.lg,
-                  }}
-                >
-                  {/* Sender Header */}
-                  <div className="flex items-center justify-between mb-1 pb-1">
-                    <span
-                      className="text-xs font-bold flex items-center"
-                      style={{ color: isUser ? SURFACE_BG : ACCENT_COLOR }}
-                    >
-                      {!isUser && <Bot size={14} className="mr-1" />}
-                      {msg.name}
-                    </span>
-
-                    {!isUser && (
-                      <div className="flex items-center space-x-1 ml-2">
-                        {/* Copy button */}
-                        <button
-                          onClick={() => copyMessage(msg.text, msg.id)}
-                          className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
-                          title="Copy message"
-                        >
-                          {copiedId === msg.id ? <Check size={13} className="text-green-600" /> : <Copy size={13} />}
-                        </button>
-
-                        {/* Share to Group Chat button */}
-                        {room && (
-                          <button
-                            onClick={() => shareToGroupChat(msg.text, msg.id)}
-                            className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
-                            title="Share to Group Chat"
-                          >
-                            {sharedId === msg.id ? <Check size={13} className="text-green-600" /> : <Share2 size={13} />}
-                          </button>
-                        )}
-                      </div>
-                    )}
+                {isUser ? (
+                  <div
+                    className="max-w-[78%] p-3.5 rounded-lg shadow-sm transition-all duration-150"
+                    style={{
+                      backgroundColor: PRIMARY_COLOR,
+                      color: DESIGN_TOKENS.colors.text.white,
+                      boxShadow: DESIGN_TOKENS.shadows.sm,
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <span className="text-xs font-bold text-white/90">
+                        {msg.name}
+                      </span>
+                      {msg.time && (
+                        <span className="text-[10px] text-white/70">
+                          {msg.time}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm break-words whitespace-pre-wrap">{msg.text}</p>
                   </div>
+                ) : (
+                  <div
+                    className="max-w-[85%] p-4 rounded-lg shadow-md transition-all duration-150 hover:shadow-lg"
+                    style={{
+                      backgroundColor: SURFACE_BG,
+                      borderLeft: `5px solid ${PRIMARY_COLOR}`,
+                      boxShadow: DESIGN_TOKENS.shadows.md,
+                    }}
+                  >
+                    {/* Note Card Header */}
+                    <div className="flex items-center justify-between mb-2 pb-1 border-b" style={{ borderColor: BORDER_COLOR }}>
+                      <span className="text-xs font-bold flex items-center" style={{ color: PRIMARY_COLOR }}>
+                        <Bot size={14} className="mr-1.5" />
+                        {msg.name}
+                      </span>
+                      {msg.time && (
+                        <span className="text-xs" style={{ color: SECONDARY_TEXT }}>
+                          {msg.time}
+                        </span>
+                      )}
+                    </div>
 
-                  {/* Message Body */}
-                  {isUser ? (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                  ) : (
+                    {/* Note Card Body */}
                     <div
-                      className="text-sm leading-relaxed space-y-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:bg-gray-100 [&_pre]:p-2 [&_pre]:rounded [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded text-gray-800"
+                      className="text-sm leading-relaxed space-y-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:bg-gray-100 [&_pre]:p-2 [&_pre]:rounded [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded text-gray-800 break-words"
                       dangerouslySetInnerHTML={renderMarkdown(msg.text)}
                     />
-                  )}
 
-                  {msg.time && (
-                    <div
-                      className="text-[10px] text-right mt-1 opacity-70"
-                      style={{ color: isUser ? SURFACE_BG : SECONDARY_TEXT }}
-                    >
-                      {msg.time}
+                    {/* Action Buttons styled identically to Notepad.jsx */}
+                    <div className="flex space-x-2 pt-2.5 mt-3 border-t" style={{ borderColor: BORDER_COLOR }}>
+                      {/* Copy button */}
+                      <button
+                        onClick={() => copyMessage(msg.text, msg.id)}
+                        className="text-xs font-medium py-1 px-3 rounded-full transition-colors hover:bg-blue-500 hover:text-white"
+                        style={{ border: `1px solid ${PRIMARY_COLOR}`, color: PRIMARY_COLOR }}
+                      >
+                        {copiedId === msg.id ? <Check size={13} className="inline-block mr-1 text-green-600" /> : <Copy size={13} className="inline-block mr-1 relative -top-px" />}
+                        {copiedId === msg.id ? 'Copied' : 'Copy'}
+                      </button>
+
+                      {/* Share to Meeting Discussion */}
+                      {room && (
+                        <button
+                          onClick={() => shareToGroupChat(msg.text, msg.id)}
+                          className="text-xs font-medium py-1 px-3 rounded-full transition-colors hover:bg-green-500 hover:text-white"
+                          style={{ border: `1px solid ${DESIGN_TOKENS.colors.success}`, color: DESIGN_TOKENS.colors.success }}
+                        >
+                          <Share2 size={13} className="inline-block mr-1 relative -top-px" />
+                          {sharedId === msg.id ? 'Shared' : 'Share'}
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             );
           })
@@ -368,17 +380,13 @@ const GeminiChatUI = forwardRef(({ room }, ref) => {
         {isSearching && (
           <div className="flex justify-start">
             <div
-              className="p-3.5 rounded-xl shadow-sm flex items-center space-x-2 border"
+              className="p-3.5 rounded-lg shadow-sm flex items-center space-x-2 border"
               style={{
                 backgroundColor: SURFACE_BG,
                 borderColor: BORDER_COLOR,
-                borderTopLeftRadius: DESIGN_TOKENS.radius.lg,
-                borderTopRightRadius: DESIGN_TOKENS.radius.lg,
-                borderBottomLeftRadius: DESIGN_TOKENS.radius.sm,
-                borderBottomRightRadius: DESIGN_TOKENS.radius.lg,
               }}
             >
-              <Loader2 size={16} style={{ color: ACCENT_COLOR }} className="animate-spin" />
+              <Loader2 size={16} style={{ color: PRIMARY_COLOR }} className="animate-spin" />
               <span className="text-xs font-medium" style={{ color: SECONDARY_TEXT }}>
                 ConvoSpace AI is thinking...
               </span>
@@ -387,7 +395,7 @@ const GeminiChatUI = forwardRef(({ room }, ref) => {
         )}
       </div>
 
-      {/* Input box (Matching Chats.jsx) */}
+      {/* Input box */}
       <div
         className="p-3 flex items-center"
         style={{
@@ -402,28 +410,29 @@ const GeminiChatUI = forwardRef(({ room }, ref) => {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 p-3 rounded-full text-sm transition-all duration-200"
+          className="flex-1 p-3 rounded-full text-sm border focus:ring-1 focus:ring-opacity-70 focus:outline-none transition-all duration-200"
           style={{
             backgroundColor: ELEVATED_BG,
             color: PRIMARY_TEXT,
-            border: `1px solid ${BORDER_COLOR}`,
-            outline: 'none',
+            borderColor: BORDER_COLOR,
+            '--tw-ring-color': PRIMARY_COLOR,
+            boxShadow: DESIGN_TOKENS.shadows.sm,
           }}
         />
         <button
           onClick={() => handleAsk()}
           disabled={!query.trim() || isSearching}
-          className={`p-3 ml-2 rounded-full transition-all duration-200 hover:scale-[1.05] ${
+          className={`p-3 ml-2 rounded-full transition-transform duration-200 hover:scale-[1.05] active:scale-[0.98] ${
             !query.trim() || isSearching ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
           }`}
           style={{
             background: ACCENT_GRADIENT,
-            color: SURFACE_BG,
+            color: DESIGN_TOKENS.colors.text.white,
             boxShadow: DESIGN_TOKENS.shadows.md,
           }}
           title="Send query"
         >
-          <Send size={20} />
+          <Send size={18} />
         </button>
       </div>
     </div>
