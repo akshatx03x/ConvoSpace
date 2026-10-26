@@ -241,8 +241,15 @@ const FileUploader = ({ refreshKey, room }) => {
         >
           <CloudUpload size={28} style={{ color: PRIMARY_COLOR }} />
 
-          <p className="mt-1.5 text-sm font-semibold" style={{ color: PRIMARY_TEXT }}>
-            {isUploading ? 'Uploading file...' : 'Drag & Drop your file here'}
+          <p className="mt-1.5 text-sm font-semibold max-w-full px-2 text-center" style={{ color: PRIMARY_TEXT, wordBreak: 'break-word' }}>
+            {isUploading ? (
+              <span className="inline-flex items-center space-x-1.5 text-blue-600">
+                <span className="inline-block animate-spin rounded-full h-3.5 w-3.5 border-2 border-blue-600 border-t-transparent flex-shrink-0" />
+                <span className="break-words">Uploading {file?.name || 'file'}...</span>
+              </span>
+            ) : (
+              'Drag & Drop your file here'
+            )}
           </p>
           <p className="text-xs" style={{ color: SECONDARY_TEXT }}>
             (PDF, Word, TXT, Images — Max 20MB)
@@ -298,49 +305,80 @@ const FileUploader = ({ refreshKey, room }) => {
           }}
         >
           {uploadedFiles.length > 0 ? (
-            uploadedFiles.map((file, index) => (
-              <div 
-                key={file._id || index} 
-                className="p-3.5 flex justify-between items-center rounded-lg shadow-sm transition-all duration-150 hover:shadow-md"
-                style={{ 
-                  backgroundColor: SURFACE_BG, 
-                  borderLeft: `4px solid ${PRIMARY_COLOR}`,
-                  boxShadow: DESIGN_TOKENS.shadows.sm,
-                }}
-              >
-                <div className="flex items-center space-x-2.5 truncate mr-2">
-                  <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: '#EBF3FF' }}
-                  >
-                    <FileText size={16} style={{ color: PRIMARY_COLOR }} />
+            uploadedFiles.map((uploadedFileItem, index) => {
+              const fileName = uploadedFileItem.name || 'Untitled File';
+              const fileExt = fileName.includes('.') 
+                ? fileName.split('.').pop().toUpperCase() 
+                : 'FILE';
+
+              return (
+                <div 
+                  key={uploadedFileItem._id || index} 
+                  className="p-3 flex flex-col rounded-xl shadow-xs transition-all duration-150 hover:shadow-md border"
+                  style={{ 
+                    backgroundColor: SURFACE_BG, 
+                    borderColor: BORDER_COLOR,
+                    borderLeft: `4px solid ${PRIMARY_COLOR}`,
+                    boxShadow: DESIGN_TOKENS.shadows.sm,
+                  }}
+                >
+                  {/* Complete File Name Row */}
+                  <div className="flex items-start space-x-2.5 w-full">
+                    <div 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                      style={{ backgroundColor: '#EBF3FF' }}
+                    >
+                      <FileText size={16} style={{ color: PRIMARY_COLOR }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span 
+                        className="text-sm font-semibold block select-text leading-snug"
+                        style={{ 
+                          color: PRIMARY_TEXT, 
+                          wordBreak: 'break-word', 
+                          overflowWrap: 'anywhere' 
+                        }}
+                        title={fileName}
+                      >
+                        {fileName}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-sm font-medium truncate" style={{ color: PRIMARY_TEXT }}>
-                    {file.name}
-                  </span>
-                </div>
-                
-                {/* Action pill buttons matching Notepad.jsx */}
-                <div className="flex space-x-2 flex-shrink-0">
-                  <button
-                    onClick={() => downloadFile(file._id, file.name)}
-                    className="text-xs font-medium py-1 px-3 rounded-full transition-colors hover:bg-blue-500 hover:text-white flex items-center"
-                    style={{ border: `1px solid ${PRIMARY_COLOR}`, color: PRIMARY_COLOR }}
-                    title="Download File"
+                  
+                  {/* Metadata and Actions Row */}
+                  <div 
+                    className="flex items-center justify-between mt-2.5 pt-2 border-t"
+                    style={{ borderColor: BORDER_COLOR }}
                   >
-                    <Download size={13} className="mr-1" /> Download
-                  </button>
-                  <button
-                    onClick={() => handleDelete(file._id)}
-                    className="text-xs font-medium py-1 px-3 rounded-full text-white transition-colors bg-red-500 hover:bg-red-600 flex items-center"
-                    style={{ backgroundColor: DESIGN_TOKENS.colors.delete }}
-                    title="Delete File"
-                  >
-                    <Trash2 size={13} className="mr-1" /> Delete
-                  </button>
+                    <span 
+                      className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider"
+                      style={{ backgroundColor: ELEVATED_BG, color: SECONDARY_TEXT, border: `1px solid ${BORDER_COLOR}` }}
+                    >
+                      {fileExt}
+                    </span>
+
+                    <div className="flex space-x-1.5 flex-shrink-0">
+                      <button
+                        onClick={() => downloadFile(uploadedFileItem._id, fileName)}
+                        className="text-xs font-semibold py-1 px-2.5 rounded-full transition-colors hover:bg-blue-600 hover:text-white flex items-center"
+                        style={{ border: `1px solid ${PRIMARY_COLOR}`, color: PRIMARY_COLOR, backgroundColor: '#F8FAFF' }}
+                        title={`Download ${fileName}`}
+                      >
+                        <Download size={12} className="mr-1" /> Download
+                      </button>
+                      <button
+                        onClick={() => handleDelete(uploadedFileItem._id)}
+                        className="text-xs font-semibold py-1 px-2.5 rounded-full text-white transition-colors bg-red-500 hover:bg-red-600 flex items-center"
+                        style={{ backgroundColor: DESIGN_TOKENS.colors.delete }}
+                        title={`Delete ${fileName}`}
+                      >
+                        <Trash2 size={12} className="mr-1" /> Delete
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center p-6" style={{ color: SECONDARY_TEXT }}>
               <FolderOpen size={40} style={{ color: PRIMARY_COLOR }} className="mb-2 opacity-60" />
