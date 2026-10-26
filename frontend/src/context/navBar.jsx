@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, Sparkles } from 'lucide-react';
 
 // Premium Design System - Inspired by Apple & Google
@@ -35,9 +36,28 @@ const DESIGN_TOKENS = {
 
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLinkClick = () => {
     if (isOpen) setIsOpen(false);
+  };
+
+  const handleNavClick = (e, href) => {
+    e.preventDefault();
+    handleLinkClick();
+
+    // If user is currently in an active meeting, intercept and ask for confirmation
+    const activeRoom = sessionStorage.getItem('convo_active_room');
+    if (activeRoom) {
+      window.dispatchEvent(new CustomEvent('convo:confirm-leave-meeting', {
+        detail: { targetUrl: href }
+      }));
+      return;
+    }
+
+    if (location.pathname === href) return;
+    navigate(href);
   };
 
   const navLinks = [
@@ -62,6 +82,7 @@ const NavBar = () => {
           {/* Logo */}
           <a 
             href="/dashboard"
+            onClick={(e) => handleNavClick(e, '/dashboard')}
             className="flex items-center gap-2 group cursor-pointer"
           >
             <span 
@@ -81,6 +102,7 @@ const NavBar = () => {
               <li key={link.name}>
                 <a
                   href={link.href}
+                  onClick={(e) => handleNavClick(e, link.href)}
                   className="px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 hover:scale-105"
                   style={{
                     color: DESIGN_TOKENS.colors.text.secondary
@@ -101,6 +123,7 @@ const NavBar = () => {
             <li>
               <a
                 href="/subscriptions"
+                onClick={(e) => handleNavClick(e, '/subscriptions')}
                 className="ml-2 px-5 py-2 rounded-full font-semibold text-sm text-white transition-all duration-200 hover:scale-105"
                 style={{
                   background: DESIGN_TOKENS.colors.gradient,
@@ -152,7 +175,7 @@ const NavBar = () => {
                 <a
                   key={link.name}
                   href={link.href}
-                  onClick={handleLinkClick}
+                  onClick={(e) => handleNavClick(e, link.href)}
                   className="px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200"
                   style={{
                     color: DESIGN_TOKENS.colors.text.secondary
@@ -171,7 +194,7 @@ const NavBar = () => {
               ))}
               <a
                 href="/subscriptions"
-                onClick={handleLinkClick}
+                onClick={(e) => handleNavClick(e, '/subscriptions')}
                 className="mt-2 px-4 py-3 rounded-xl font-semibold text-sm text-white text-center transition-all duration-200"
                 style={{
                   background: DESIGN_TOKENS.colors.gradient,

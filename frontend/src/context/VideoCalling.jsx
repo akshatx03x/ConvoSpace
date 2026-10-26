@@ -10,7 +10,7 @@ import Footer from '../components/Extras/Footer.jsx';
 import FileUploader from '../pages/FileUploader.jsx';
 import Notepad from '../pages/Notepad.jsx';
 import Chats from '../pages/Chats.jsx';
-import { Zap, Mic, MicOff, Video, VideoOff, PhoneOff, Users, Clock, Copy, Check, ShieldCheck } from 'lucide-react';
+import { Zap, Mic, MicOff, Video, VideoOff, PhoneOff, Users, Clock, Copy, Check, ShieldCheck, AlertCircle } from 'lucide-react';
 
 // Design Tokens from NavBar.jsx (unchanged)
 const DESIGN_TOKENS = {
@@ -96,6 +96,8 @@ const VideoCalling = () => {
   const [joinError, setJoinError] = useState("");
   const [mediaStarted, setMediaStarted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [pendingNavUrl, setPendingNavUrl] = useState(null);
 
   const localVideoRef = useRef();
   const socket = useSocket();
@@ -506,6 +508,61 @@ const VideoCalling = () => {
       console.error('❌ Error leaving:', error);
     }
   }, [socket, room]);
+
+  // Intercept navigation requests (e.g., clicking Dashboard in navbar while in meeting)
+  useEffect(() => {
+    if (!isJoined) return;
+
+    const handleConfirmLeaveRequest = (e) => {
+      const targetUrl = e.detail?.targetUrl || '/dashboard';
+      setPendingNavUrl(targetUrl);
+      setShowLeaveModal(true);
+    };
+
+    window.addEventListener('convo:confirm-leave-meeting', handleConfirmLeaveRequest);
+    return () => {
+      window.removeEventListener('convo:confirm-leave-meeting', handleConfirmLeaveRequest);
+    };
+  }, [isJoined]);
+
+  // Tab reload / close warning while in meeting
+  useEffect(() => {
+    if (!isJoined) return;
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isJoined]);
+
+  // Keyboard shortcut: Escape to dismiss leave confirmation modal
+  useEffect(() => {
+    if (!showLeaveModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowLeaveModal(false);
+        setPendingNavUrl(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showLeaveModal]);
+
+  const handleConfirmLeave = useCallback(async () => {
+    setShowLeaveModal(false);
+    const destination = pendingNavUrl;
+    setPendingNavUrl(null);
+    await handleLeaveMeeting();
+    if (destination && destination !== '/dashboard') {
+      window.location.href = destination;
+    }
+  }, [handleLeaveMeeting, pendingNavUrl]);
+
+  const handleCancelLeave = useCallback(() => {
+    setShowLeaveModal(false);
+    setPendingNavUrl(null);
+  }, []);
   // --- END: Functionality (Omitted for brevity, unchanged) ---
 
   // Loading/Connecting State
@@ -854,7 +911,10 @@ const VideoCalling = () => {
               </button>
 
               <button
-                onClick={handleLeaveMeeting}
+                onClick={() => {
+                  setPendingNavUrl('/dashboard');
+                  setShowLeaveModal(true);
+                }}
                 className="p-3 bg-red-600 text-white rounded-full transition-all duration-200 hover:bg-red-700 hover:scale-105"
                 style={{ boxShadow: DESIGN_TOKENS.shadows.md }}
                 aria-label="End call"
@@ -885,6 +945,79 @@ const VideoCalling = () => {
           </ElevatedCard>
         </div>
       </div>
+
+      {/* Leave Meeting Confirmation Modal */}
+      {showLeaveModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={handleCancelLeave}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="leave-modal-title"
+        >
+          <div 
+            className="w-full max-w-md rounded-2xl p-6 sm:p-8 shadow-2xl transition-all transform scale-100 animate-in zoom-in-95 duration-200"
+            style={{
+              backgroundColor: SURFACE_BG,
+              border: `1px solid ${BORDER_COLOR}`,
+              boxShadow: DESIGN_TOKENS.shadows.lg,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center space-x-4 mb-4">
+              <div 
+                className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}
+              >
+                <AlertCircle size={26} />
+              </div>
+              <div>
+                <h3 
+                  id="leave-modal-title"
+                  className="text-xl font-bold"
+                  style={{ color: PRIMARY_TEXT }}
+                >
+                  Leave Meeting?
+                </h3>
+                <p className="text-xs font-medium" style={{ color: SECONDARY_TEXT }}>
+                  Room: <span className="font-mono font-semibold" style={{ color: DESIGN_TOKENS.colors.primary }}>{room}</span>
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm mb-6 leading-relaxed" style={{ color: SECONDARY_TEXT }}>
+              Are you sure you want to leave the meeting? Your camera, microphone, and connection to all participants will be stopped.
+            </p>
+
+            <div className="flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={handleCancelLeave}
+                className="px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 hover:bg-neutral-100 active:scale-95"
+                style={{
+                  backgroundColor: ELEVATED_BG,
+                  color: PRIMARY_TEXT,
+                  border: `1px solid ${BORDER_COLOR}`
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLeave}
+                className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all duration-150 hover:bg-red-700 active:scale-95 flex items-center space-x-1.5 shadow-md"
+                style={{
+                  backgroundColor: '#DC2626',
+                }}
+              >
+                <PhoneOff size={16} className="mr-1" />
+                <span>Yes, Leave</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );
